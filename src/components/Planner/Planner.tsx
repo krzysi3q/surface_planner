@@ -1,10 +1,11 @@
 import { Stage, Layer, Line } from "react-konva";
-import React, { useMemo, useRef } from "react";
-import type { Surface, Point } from "./types";
-import { Hand, RotateCwSquare, SplinePointer, SquaresSubtract, SquaresUnite, Trash2 } from 'lucide-react'
+import React, { useRef } from "react";
+import type { SurfaceType, Point } from "./types";
+import { Hand, Redo, RotateCwSquare, SplinePointer, SquaresSubtract, SquaresUnite, Trash2, Undo } from 'lucide-react'
 
 import Konva from "konva";
 
+import { useHistoryState } from "@/hooks/useHistoryState";
 import { subtractSurfaces, unionSurfaces, pointInSurface, isSurfaceIntersecting } from "./utils";
 import { removeCustomCursor, setGrabbingCursor } from "./domUtils"
 import EdgeEdit from "./EdgeEdit";
@@ -15,8 +16,9 @@ import { usePlannerReducer } from "./usePlannerReducer";
 import { AngleMarker } from "./AngleMarker";
 import { ToolbarButton } from "./components/ToolbarButton";
 import { classMerge } from "@/utils/classMerge";
+import { Surface } from "./Surface";
 
-type TemporarySurface = Surface & {
+type TemporarySurface = SurfaceType & {
   state: "error" | "valid";
 };
 
@@ -26,26 +28,7 @@ export interface PlannerProps {
   height: number;
 }
 
-const createPatternCanvas = () => {
-  const size = 8;
-  const canvas = document.createElement('canvas');
-  canvas.width = size;
-  canvas.height = size;
-  const ctx = canvas.getContext('2d');
-  if (ctx) {
-    ctx.strokeStyle = 'rgba(100,100,100,0.3)';
-    ctx.lineWidth = 1;
-    ctx.beginPath();
-    ctx.moveTo(0, size);
-    ctx.lineTo(size, 0);
-    ctx.stroke();
-  }
-  const image = new Image();
-  image.src = canvas.toDataURL();
-  return image;
-};
 
-const patternCanvas = createPatternCanvas();
 
 const getWallKey = (pointA: Point, pointB: Point) => {
   const [x1, y1] = pointA;
@@ -59,8 +42,7 @@ const isSamePoint = (pointA: Point, pointB: Point) => {
 
 
 export const Planner: React.FC<PlannerProps> = ({ width, height }) => {
-  
-  const [surface, setSurface] = React.useState<Surface>({
+  const { state: surface, set: setSurface, undo, redo, persist, canUndo, canRedo } = useHistoryState<{id: string, points: Point[]}>({
     id: "some id",
     points: [],
   });
@@ -79,6 +61,7 @@ export const Planner: React.FC<PlannerProps> = ({ width, height }) => {
   const pointsCopy = useRef<Point[] | null>(null)
   const startPosRef = useRef<{ x: number; y: number } | null>(null);
   const handleDragStart = () => {
+    persist();
     pointsCopy.current = [...surface.points];
   }
 
@@ -125,7 +108,7 @@ export const Planner: React.FC<PlannerProps> = ({ width, height }) => {
     setSurface((current) => ({
         ...current,
         points: newPoints,
-    }));
+    }), true);
   }
 
   const handleDragCornerMove = (e: Konva.KonvaEventObject<DragEvent>, diff: Point) => {
@@ -166,6 +149,7 @@ export const Planner: React.FC<PlannerProps> = ({ width, height }) => {
       const newSurface: TemporarySurface = { id, points, state: "valid" };
       setCurrentSurface(newSurface);
     } else if (state.mode === 'preview') {
+      persist()
       setGrabbingCursor(e);
       const pos = e.currentTarget.getStage()?.getPointerPosition();
       if (pos) startPosRef.current = { x: pos.x, y: pos.y };
@@ -214,7 +198,7 @@ export const Planner: React.FC<PlannerProps> = ({ width, height }) => {
       setSurface((current) => ({
         ...current,
         points: newPoints,
-      }));
+      }), true);
     }
   };
 
@@ -315,34 +299,6 @@ export const Planner: React.FC<PlannerProps> = ({ width, height }) => {
     });
   }
 
-  // prepare offset polygon for pattern band
-  const hatchOffset = 25;
-  const offsetPolygon = useMemo(() => {
-    const pts = surface.points;
-    const result: [number, number][] = [];
-    const n = pts.length;
-    for (let i = 0; i < n; i++) {
-      const [x, y] = pts[i];
-      // compute normals of adjacent edges
-      const [xPrev, yPrev] = pts[(i - 1 + n) % n];
-      const [xNext, yNext] = pts[(i + 1) % n];
-      // edge vectors
-      const vx1 = x - xPrev, vy1 = y - yPrev;
-      const vx2 = xNext - x,   vy2 = yNext - y;
-      // normals
-      const len1 = Math.hypot(vx1, vy1) || 1;
-      const len2 = Math.hypot(vx2, vy2) || 1;
-      const nx1 = vy1 / len1, ny1 = -vx1 / len1;
-      const nx2 = vy2 / len2, ny2 = -vx2 / len2;
-      // average normal
-      const nx = (nx1 + nx2) / 2;
-      const ny = (ny1 + ny2) / 2;
-      const norm = Math.hypot(nx, ny) || 1;
-      result.push([x + (nx / norm) * hatchOffset, y + (ny / norm) * hatchOffset]);
-    }
-    return result;
-  }, [surface.points]);
-
   const scale = 0.01; // 100px = 1m
   const deletionDisabled = surface.points.length <= 3;
   
@@ -353,6 +309,8 @@ export const Planner: React.FC<PlannerProps> = ({ width, height }) => {
         <ToolbarButton onClick={() => dispatch({type: 'preview'})} active={state.mode === 'preview'} icon={<Hand />} />
         <ToolbarButton onClick={() => dispatch({type: 'add-surface'})} active={state.mode === 'add-surface'} icon={<SquaresUnite />} />
         <ToolbarButton onClick={() => dispatch({type: 'subtract-surface'})} active={state.mode === 'subtract-surface'} icon={<SquaresSubtract />} />
+        <ToolbarButton onClick={undo} disabled={!canUndo} icon={<Undo />} />
+        <ToolbarButton onClick={redo} disabled={!canRedo} icon={<Redo />} />
       </div>
       {state.mode === 'edit-corner' && (
         <div className="absolute z-10 left-2 top-5 w-32 bg-gray-100 shadow-md p-1 space-x-2 rounded-lg">
@@ -387,26 +345,7 @@ export const Planner: React.FC<PlannerProps> = ({ width, height }) => {
       >
         <Layer>
           {surface.points.length > 0 && (
-            // outer patterned band
-            <>
-              <Line
-                key={`band-${surface.id}`}
-                points={offsetPolygon.flat()}
-                closed
-                fillPatternImage={patternCanvas}
-                fillPatternRepeat="repeat"
-                fillPatternRotation={Math.PI / 4}
-                fillRule="evenodd"
-              />
-              <Line
-                key={`mask-${surface.id}`}
-                points={surface.points.flat()}
-                closed
-                fill="#fff"
-                stroke="black"
-                strokeWidth={1}
-              />
-            </>
+            <Surface id={surface.id} points={surface.points} />
           )}
           {currentSurface && (
             <Line

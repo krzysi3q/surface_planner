@@ -5,7 +5,7 @@ export interface WallStructure {
   points: Point[];
 }
 
-export interface Surface {
+export interface SurfaceType {
   id: string;
   points: Point[];
 }

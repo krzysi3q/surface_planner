@@ -10,6 +10,7 @@
   },
   "dependencies": {
     "@doodle3d/clipper-js": "^1.0.11",
+    "@uidotdev/usehooks": "^2.4.1",
     "konva": "^9.3.20",
     "lucide-react": "^0.508.0",
     "next": "15.3.0",
