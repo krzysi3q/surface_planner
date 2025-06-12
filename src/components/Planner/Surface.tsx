@@ -1,30 +1,19 @@
-import React, { useMemo } from "react";
-import { Point } from "./types";
+import React, { useEffect, useMemo } from "react";
+import { Pattern, Point } from "./types";
 import { Group, Line } from "react-konva";
+import { removeCustomCursor, setGrabbingCursor, setGrabCursor, setPointerCursor } from "./domUtils";
+import { createPatternCanvas, drawPattern} from "./utils";
+import Konva from "konva";
 
 interface SurfaceProps { 
   points: Point[];
   id: string;
+  edit: boolean;
+  pattern: Pattern;
+  disabled?: boolean;
+  onChange?: (pattern: Pattern) => void;
+  onClick?: () => void;
 }
-
-const createPatternCanvas = () => {
-  const size = 8;
-  const canvas = document.createElement('canvas');
-  canvas.width = size;
-  canvas.height = size;
-  const ctx = canvas.getContext('2d');
-  if (ctx) {
-    ctx.strokeStyle = 'rgba(100,100,100,0.3)';
-    ctx.lineWidth = 1;
-    ctx.beginPath();
-    ctx.moveTo(0, size);
-    ctx.lineTo(size, 0);
-    ctx.stroke();
-  }
-  const image = new Image();
-  image.src = canvas.toDataURL();
-  return image;
-};
 
 const patternCanvas = createPatternCanvas();
 
@@ -57,14 +46,60 @@ const getOffsetPolygon = (points: Point[], hatchOffset: number) => {
 
 const hatchOffset = 25;
 
-export const Surface: React.FC<SurfaceProps> = ({ points, id}) => {
+export const Surface: React.FC<SurfaceProps> = ({ points, id, onClick, pattern, disabled, edit, onChange}) => {
   // prepare offset polygon for pattern band
   const offsetPolygon = useMemo(() => getOffsetPolygon(points, hatchOffset), [points]);
+  const [background, setBackground] = React.useState<HTMLImageElement | undefined>(undefined);
+  
 
+  useEffect(() => {
+    if (!pattern || pattern.tiles.length === 0) return;
+    const canvas = drawPattern(pattern)
+    canvas?.toBlob((blob) => {
+      if (blob) {
+        const url = URL.createObjectURL(blob);
+        const image = new Image();
+        image.onload = () => {
+          setBackground(image);
+        }
+        image.src = url;
+      }
+    }, 'image/png', 10);
+  }, [pattern]);
+
+
+
+  const [state, setState] = React.useState<'default' | 'hover' >('default');
+  const {handleMouseEnter, handleMouseLeave, handleClick } = useMemo(() => ({
+    handleMouseEnter: (e: Konva.KonvaEventObject<MouseEvent>) => {
+      if (disabled) return;
+      if (edit) {
+        setGrabCursor(e);
+      } else {
+        setState('hover');
+        setPointerCursor(e)
+      }
+    },
+    handleMouseLeave: (e: Konva.KonvaEventObject<MouseEvent>) => {
+      setState('default');
+      removeCustomCursor(e);
+    },
+    handleClick: (e: Konva.KonvaEventObject<MouseEvent>) => {
+      if (disabled) return;
+      setGrabCursor(e);
+      onClick?.();
+    }
+  }), [disabled, edit, onClick]);
+
+  const scale = (pattern?.scale || 1);
+
+  const startPos = React.useRef<{ mouse: {x: number, y: number}, pattern: {x: number, y: number}} | null>(null)
+  
   return (
     <Group>
       <Line
         key={`band-${id}`}
+        id={`band-${id}`}
         points={offsetPolygon.flat()}
         closed
         fillPatternImage={patternCanvas}
@@ -74,11 +109,49 @@ export const Surface: React.FC<SurfaceProps> = ({ points, id}) => {
       />
       <Line
         key={`mask-${id}`}
+        id={`mask-${id}`}
         points={points.flat()}
         closed
-        fill="#fff"
+        fill={!background ? 'white' : undefined}
+        fillPatternImage={background}
+        fillPatternRepeat="repeat"
+        fillPatternScaleX={scale}
+        fillPatternScaleY={scale}
+        fillPatternX={pattern?.x || 0}
+        fillPatternY={pattern?.y || 0}
         stroke="black"
         strokeWidth={1}
+        shadowColor="black"
+        shadowOpacity={0.3}
+        shadowBlur={state === 'hover' ? 10 : 0}
+        onClick={handleClick}
+        onMouseEnter={handleMouseEnter}
+        onMouseLeave={handleMouseLeave}
+        onMouseDown={(e) => {
+          if (disabled || !edit) return;
+          setGrabbingCursor(e);
+          startPos.current = { mouse: { x: e.evt.clientX, y: e.evt.clientY }, pattern: {x: pattern?.x || 0, y: pattern?.y || 0} };
+          e.cancelBubble = true; // Prevent event bubbling
+        }}
+        onMouseUp={(e) => {
+          if (edit) {
+            removeCustomCursor(e);
+          }
+          startPos.current = null;
+        }}
+        onMouseMove={(e) => {
+          if (disabled || !edit || !startPos.current) return;
+          const dx = e.evt.clientX - startPos.current.mouse.x;
+          const dy = e.evt.clientY - startPos.current.mouse.y;
+          const newX = startPos.current.pattern.x + dx;
+          const newY = startPos.current.pattern.y + dy;
+          onChange?.({
+            ...pattern,
+            x: newX,
+            y: newY,
+          });
+          
+        }}
       />
     </Group>
   );

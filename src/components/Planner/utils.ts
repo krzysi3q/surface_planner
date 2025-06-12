@@ -1,6 +1,6 @@
 import Shape, { Point as ShapePoint } from '@doodle3d/clipper-js';
 
-import { Point } from './types';
+import { Pattern, Point } from './types';
 
 const pathPointToShapePoint = (point: Point): ShapePoint => ({
   X: point[0],
@@ -112,3 +112,257 @@ export const isSurfaceIntersecting = (surface: Point[]): boolean => {
 
   return false;
 };
+
+export const createPatternCanvas = () => {
+  const size = 8;
+  const canvas = document.createElement('canvas');
+  canvas.width = size;
+  canvas.height = size;
+  const ctx = canvas.getContext('2d');
+  if (ctx) {
+    ctx.strokeStyle = 'rgba(100,100,100,0.3)';
+    ctx.lineWidth = 1;
+    ctx.beginPath();
+    ctx.moveTo(0, size);
+    ctx.lineTo(size, 0);
+    ctx.stroke();
+  }
+  const image = new Image();
+  image.src = canvas.toDataURL();
+  return image;
+};
+
+export const getAngles = (points: [Point, Point, Point]) => {
+    const [prev, pt, nxt] = points;
+    // Calculate angles of vectors pt->prev and pt->nxt from positive x-axis
+    const angleRadPtPrev = Math.atan2(prev[1] - pt[1], prev[0] - pt[0]);
+    const angleRadPtNxt = Math.atan2(nxt[1] - pt[1], nxt[0] - pt[0]);
+
+    // Calculate interior angle assuming CCW polygon points.
+    // This is the angle swept CCW from vector (pt->nxt) to vector (pt->prev).
+    let interiorAngleRad = angleRadPtPrev - angleRadPtNxt;
+    // Normalize to [0, 2*PI)
+    if (interiorAngleRad < 0) {
+      interiorAngleRad += 2 * Math.PI;
+    }
+    
+    // This is the magnitude of the interior angle in degrees.
+    const interiorAngleMagnitudeDeg = Math.round(((interiorAngleRad * 180) / Math.PI) * 1000) / 1000;
+    return {
+      angleRadPtPrev,
+      angleRadPtNxt,
+      interiorAngleMagnitudeDeg,
+    }
+  }
+
+export const saveToLocalStorage = (key: string, value: unknown) => {
+  try {
+    const serializedValue = JSON.stringify(value);
+    localStorage.setItem(key, serializedValue);
+  } catch (error) {
+    console.error("Error saving to localStorage", error);
+  }
+};
+export const loadFromLocalStorage = (key: string) => {
+  try {
+    const serializedValue = localStorage.getItem(key);
+    if (serializedValue === null) return undefined;
+    return JSON.parse(serializedValue);
+  } catch (error) {
+    console.error("Error loading from localStorage", error);
+    return undefined;
+  }
+}
+export const removeFromLocalStorage = (key: string) => {
+  try {
+    localStorage.removeItem(key);
+  } catch (error) {
+    console.error("Error removing from localStorage", error);
+  }
+}
+
+export const getBoundingBox = (points: Point[]): { x: number, y: number, width: number, height: number} => {
+  const xs = points.map(point => point[0]);
+  const ys = points.map(point => point[1]);
+  const minX = Math.min(...xs);
+  const minY = Math.min(...ys);
+  const maxX = Math.max(...xs);
+  const maxY = Math.max(...ys);
+  return {
+    x: minX,
+    y: minY,
+    width: maxX - minX,
+    height: maxY - minY
+  };
+}
+
+export const getCircumscribedCircle = (points: Point[]): { center: Point, radius: number } => {
+  // Handle edge cases
+  if (points.length < 3) {
+    throw new Error('At least 3 points are required to compute a circumscribed circle');
+  }
+  
+  if (points.length === 3) {
+    // For exactly 3 points, calculate exact circumcircle
+    return getTriangleCircumcircle(points[0], points[1], points[2]);
+  }
+  
+  // For more points, find the convex hull first to reduce computation
+  // Then calculate the minimum enclosing circle
+  const { center, radius } = computeMinimumEnclosingCircle(points);
+  return { center, radius };
+};
+
+// Calculate circumcircle of a triangle
+const getTriangleCircumcircle = (a: Point, b: Point, c: Point): { center: Point, radius: number } => {
+  // Use a direct formula approach which is more numerically stable
+  // Calculate twice the signed area of the triangle
+  const D = 2 * (a[0] * (b[1] - c[1]) + b[0] * (c[1] - a[1]) + c[0] * (a[1] - b[1]));
+  
+  // Check if points are collinear (D is close to 0)
+  if (Math.abs(D) < Number.EPSILON) {
+    // Handle collinear case by creating a bounding circle
+    const midpoint = [
+      (Math.min(a[0], b[0], c[0]) + Math.max(a[0], b[0], c[0])) / 2,
+      (Math.min(a[1], b[1], c[1]) + Math.max(a[1], b[1], c[1])) / 2
+    ] as Point;
+    
+    const radius = Math.max(
+      Math.sqrt(Math.pow(midpoint[0] - a[0], 2) + Math.pow(midpoint[1] - a[1], 2)),
+      Math.sqrt(Math.pow(midpoint[0] - b[0], 2) + Math.pow(midpoint[1] - b[1], 2)),
+      Math.sqrt(Math.pow(midpoint[0] - c[0], 2) + Math.pow(midpoint[1] - c[1], 2))
+    );
+    
+    return { center: midpoint, radius };
+  }
+  
+  // Calculate squared distances
+  const a2 = a[0] * a[0] + a[1] * a[1];
+  const b2 = b[0] * b[0] + b[1] * b[1];
+  const c2 = c[0] * c[0] + c[1] * c[1];
+  
+  // Calculate center coordinates
+  const centerX = (a2 * (b[1] - c[1]) + b2 * (c[1] - a[1]) + c2 * (a[1] - b[1])) / D;
+  const centerY = (a2 * (c[0] - b[0]) + b2 * (a[0] - c[0]) + c2 * (b[0] - a[0])) / D;
+  
+  // Calculate radius as distance from center to any point
+  const radius = Math.sqrt(
+    Math.pow(centerX - a[0], 2) + Math.pow(centerY - a[1], 2)
+  );
+  
+  return { center: [centerX, centerY], radius };
+};
+
+// Implementation of Welzl's algorithm for minimum enclosing circle
+const computeMinimumEnclosingCircle = (points: Point[]): { center: Point, radius: number } => {
+  // Clone points to avoid modifying the original array
+  const shuffledPoints = [...points].sort(() => Math.random() - 0.5);
+  
+  // Start with an invalid circle
+  let circle = { center: [0, 0] as Point, radius: 0 };
+  
+  // Find a valid circle that contains all points
+  for (let i = 0; i < shuffledPoints.length; i++) {
+    const p = shuffledPoints[i];
+    
+    if (!isPointInCircle(p, circle)) {
+      circle = { center: p, radius: 0 };
+      
+      for (let j = 0; j < i; j++) {
+        const q = shuffledPoints[j];
+        
+        if (!isPointInCircle(q, circle)) {
+          circle = makeCircleFromTwoPoints(p, q);
+          
+          for (let k = 0; k < j; k++) {
+            const r = shuffledPoints[k];
+            
+            if (!isPointInCircle(r, circle)) {
+              circle = getTriangleCircumcircle(p, q, r);
+            }
+          }
+        }
+      }
+    }
+  }
+  
+  return circle;
+};
+
+// Helper function to check if a point is inside a circle
+const isPointInCircle = (point: Point, circle: { center: Point, radius: number }): boolean => {
+  if (circle.radius === 0) return false;
+  
+  const dist = Math.sqrt(
+    Math.pow(point[0] - circle.center[0], 2) + 
+    Math.pow(point[1] - circle.center[1], 2)
+  );
+  
+  return dist <= circle.radius * (1 + Number.EPSILON);
+};
+
+// Create a circle from two points (diameter)
+const makeCircleFromTwoPoints = (a: Point, b: Point): { center: Point, radius: number } => {
+  const center: Point = [
+    (a[0] + b[0]) / 2,
+    (a[1] + b[1]) / 2
+  ];
+  
+  const radius = Math.sqrt(
+    Math.pow(a[0] - center[0], 2) + 
+    Math.pow(a[1] - center[1], 2)
+  );
+  
+  return { center, radius };
+};
+
+// rotate a shape around its center
+export const rotateShape = (points: Point[], angle: number, center: Point): Point[] => {
+  
+  const centerX = center[0];
+  const centerY = center[1];
+  angle = (angle * Math.PI) / 180; // Convert to radians
+
+  return points.map(point => {
+    const x = point[0] - centerX;
+    const y = point[1] - centerY;
+    return [
+      x * Math.cos(angle) - y * Math.sin(angle) + centerX,
+      x * Math.sin(angle) + y * Math.cos(angle) + centerY
+    ];
+  });
+}
+
+export const moveToTopLeft = (points: Point[]): Point[] => moveTo(points, 0, 0);
+
+export const moveTo = (points: Point[], x: number, y: number): Point[] => {
+  const minX = Math.min(...points.map(point => point[0]));
+  const minY = Math.min(...points.map(point => point[1]));
+  return points.map(point => [point[0] - minX + x, point[1] - minY + y]);
+}
+
+export const drawPattern = (pattern: Pattern) => {
+  const canvas = document.createElement('canvas');
+  const ctx = canvas.getContext('2d');
+  if (!ctx) return;
+  canvas.width = pattern.width;
+  canvas.height = pattern.height;
+  ctx.fillStyle = pattern.gapColor;
+  ctx.fillRect(0, 0, canvas.width, canvas.height);
+  ctx.strokeStyle = pattern.gapColor;
+  pattern.tiles.forEach(tile => {
+    ctx.fillStyle = tile.color;
+    ctx.beginPath();
+    tile.points.forEach((point, index) => {
+      if (index === 0) {
+        ctx.moveTo(point[0], point[1]);
+      } else {
+        ctx.lineTo(point[0], point[1]);
+      }
+    });
+    ctx.closePath();
+    ctx.fill();
+    ctx.stroke();
+  });
+  return canvas;
+}

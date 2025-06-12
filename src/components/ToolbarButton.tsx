@@ -11,6 +11,7 @@ interface ToolbarButtonProps {
   className?: string;
   wide?: boolean;
   style?: React.CSSProperties;
+  iconRight?: boolean;
 }
 
 const getVariantStyles = (variant: ToolbarButtonProps['variant']) => {
@@ -25,11 +26,12 @@ const getVariantStyles = (variant: ToolbarButtonProps['variant']) => {
 }
 
 export const ToolbarButton: React.FC<ToolbarButtonProps> = (props) => {
-  const { onClick, label, icon, disabled, variant = "default", active, wide, className, style } = props;
+  const { onClick, label, icon, disabled, variant = "default", active, wide, className, style, iconRight } = props;
 
   return (    
       <button className={classMerge(
-        "rounded-md p-1.5 flex justify-center items-center cursor-pointer",
+        "rounded-md py-1.5 flex justify-center items-center cursor-pointer flex-row gap-1.5",
+        label ? "px-5" : "px-1.5",
         getVariantStyles(variant),
         active ? "bg-gray-300" : "",
         disabled ? "cursor-default text-gray-400 bg-gray-100 hover:text-gray-400 hover:bg-gray-100 active:bg-gray-100" : "",
@@ -38,6 +40,6 @@ export const ToolbarButton: React.FC<ToolbarButtonProps> = (props) => {
       )}
       style={style}
       disabled={disabled}
-      onClick={onClick}>{icon}{label && <span>{label}</span>}</button>
+      onClick={onClick}>{!iconRight && icon}{label && <span>{label}</span>}{iconRight && icon}</button>
   );
 };

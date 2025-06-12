@@ -88,7 +88,7 @@ const EdgeEdit: React.FC<EdgeEditProps> = (props) => {
 
   return (
     <Group>
-      {edit && <Circle x={pointA[0]} y={pointA[1]} radius={2} fill="black" strokeWidth={2} stroke='block'  />}
+      {edit && <Circle x={pointA[0]} y={pointA[1]} radius={2} fill="black" strokeWidth={2} stroke='black'  />}
       <Line 
         points={points} // Rectangle coordinates    
         strokeWidth={2}
@@ -99,7 +99,7 @@ const EdgeEdit: React.FC<EdgeEditProps> = (props) => {
         onClick={handleClick}
         id={props.id}
       />
-      {edit && <Circle x={pointB[0]} y={pointB[1]} radius={2} fill="black" strokeWidth={2} stroke='block'  />}
+      {edit && <Circle x={pointB[0]} y={pointB[1]} radius={2} fill="black" strokeWidth={2} stroke='black'  />}
     </Group>
   );
 };

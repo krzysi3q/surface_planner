@@ -1,22 +1,24 @@
 import { Stage, Layer, Line } from "react-konva";
-import React, { useRef } from "react";
-import type { SurfaceType, Point } from "./types";
-import { Hand, Redo, RotateCwSquare, SplinePointer, SquaresSubtract, SquaresUnite, Trash2, Undo } from 'lucide-react'
+import React, { useMemo, useRef } from "react";
+import type { SurfaceType, Point, Pattern } from "./types";
+import { Download, Hand, PencilRuler, Redo, Save, SplinePointer, SquaresSubtract, SquaresUnite, Trash2, Undo, Upload, ZoomIn, ZoomOut } from 'lucide-react'
+import { RightAngle } from "@/components/Icons/RightAngle";
 
 import Konva from "konva";
 
 import { useHistoryState } from "@/hooks/useHistoryState";
-import { subtractSurfaces, unionSurfaces, pointInSurface, isSurfaceIntersecting } from "./utils";
+import { subtractSurfaces, unionSurfaces, pointInSurface, isSurfaceIntersecting, saveToLocalStorage, loadFromLocalStorage, getAngles } from "./utils";
 import { removeCustomCursor, setGrabbingCursor } from "./domUtils"
 import EdgeEdit from "./EdgeEdit";
 import { MoveHandler } from "./MoveHandler";
 import { CornerEdit } from "./CornerEdit";
-import { WallDimension } from "./WallDimension";
+import { WallDimension } from "./components/WallDimension";
 import { usePlannerReducer } from "./usePlannerReducer";
 import { AngleMarker } from "./AngleMarker";
-import { ToolbarButton } from "./components/ToolbarButton";
+import { ToolbarButton } from "../ToolbarButton";
 import { classMerge } from "@/utils/classMerge";
 import { Surface } from "./Surface";
+import { PatternEditor } from "./PatternEditor/PatternEditor";
 
 type TemporarySurface = SurfaceType & {
   state: "error" | "valid";
@@ -28,6 +30,16 @@ export interface PlannerProps {
   height: number;
 }
 
+const defaultPattern: Pattern = {
+    gapColor: '#000000',
+    height: 100,
+    width: 100,
+    x: 0,
+    y: 0,
+    tiles: [],
+    tilesGap: 0,
+    scale: 0.4,
+  }
 
 
 const getWallKey = (pointA: Point, pointB: Point) => {
@@ -40,14 +52,49 @@ const isSamePoint = (pointA: Point, pointB: Point) => {
   return pointA[0] === pointB[0] && pointA[1] === pointB[1];
 }
 
+const useDragStage = (setSurface: ReturnType<typeof useHistoryState<{id: string, points: Point[], pattern: Pattern}>>['set'], enabled = true) => {
+  const startPosRef = useRef<{ x: number; y: number } | null>(null);
+
+  return useMemo(() => ({
+    handleDragStart: (e: Konva.KonvaEventObject<MouseEvent>) => {
+      if (!enabled) return;
+      const stage = e.target.getStage();
+      if (!stage) return;
+      startPosRef.current = stage.getPointerPosition();
+    },
+
+    handleDragEnd: (e: Konva.KonvaEventObject<MouseEvent>) => {
+      if (!enabled) return;
+      const stage = e.target.getStage();
+      if (!stage || !startPosRef.current) return;
+      const pos = stage.getPointerPosition();
+      if (!pos) return;
+      
+      const scale = stage.scale()
+      const dx = (startPosRef.current.x - pos.x) / scale.x;
+      const dy = (startPosRef.current.y - pos.y) / scale.y;
+
+      setSurface((current) => ({
+        ...current,
+        pattern: {
+          ...current.pattern,
+          x: current.pattern.x - dx,
+          y: current.pattern.y - dy,
+        },
+        points: current.points.map(pt => [pt[0] - dx, pt[1] - dy]),
+      }));
+      
+      stage.position({ x: 0, y: 0 }); // reset position after dragging
+    }
+  }), [setSurface, enabled])
+}
+
 
 export const Planner: React.FC<PlannerProps> = ({ width, height }) => {
-  const { state: surface, set: setSurface, undo, redo, persist, canUndo, canRedo } = useHistoryState<{id: string, points: Point[]}>({
-    id: "some id",
-    points: [],
-  });
-  
+  const { state: surface, set: setSurface, undo, redo, persist, canUndo, canRedo } = useHistoryState<{id: string, points: Point[], pattern: Pattern}>(loadFromLocalStorage('surface') || { id: self.crypto.randomUUID(), points: [], pattern: defaultPattern });
+  const [ surfaceEditorOpen, setSurfaceEditorOpen ] = React.useState<boolean>(false);
   const { state, dispatch } = usePlannerReducer(surface.points);
+  const { handleDragEnd: handleStageDragEnd, handleDragStart: handleStageDragStart} = useDragStage(setSurface, state.mode === 'preview');
 
   const [currentSurface, setCurrentSurface] =
     React.useState<TemporarySurface | null>(null);
@@ -146,14 +193,10 @@ export const Planner: React.FC<PlannerProps> = ({ width, height }) => {
         [pos.x, pos.y],
         [pos.x, pos.y],
       ];
-      const newSurface: TemporarySurface = { id, points, state: "valid" };
+      const newSurface: TemporarySurface = { id, points, state: "valid", pattern: surface.pattern };
       setCurrentSurface(newSurface);
     } else if (state.mode === 'preview') {
-      persist()
       setGrabbingCursor(e);
-      const pos = e.currentTarget.getStage()?.getPointerPosition();
-      if (pos) startPosRef.current = { x: pos.x, y: pos.y };
-      pointsCopy.current = [...surface.points];
     }
   };
 
@@ -183,22 +226,6 @@ export const Planner: React.FC<PlannerProps> = ({ width, height }) => {
         points,
         state: someInside ? "valid" : "error",
       });
-    } else if (state.mode === 'preview') {
-      const startPos = startPosRef.current;
-      const initialPoints = pointsCopy.current;
-      if (!startPos || !initialPoints) return;
-      if (!startPos) return;
-      const pos = e.currentTarget.getStage()?.getPointerPosition();
-      if (!pos) return;
-      const dx = pos.x - startPos.x;
-      const dy = pos.y - startPos.y;
-      const newPoints: Point[] = initialPoints.map((point) => {
-        return [point[0] + dx, point[1] + dy];
-      });
-      setSurface((current) => ({
-        ...current,
-        points: newPoints,
-      }), true);
     }
   };
 
@@ -244,28 +271,11 @@ export const Planner: React.FC<PlannerProps> = ({ width, height }) => {
     dispatch({ type: 'default' });
   }
 
-  const getAngles = (points: [Point, Point, Point]) => {
-    const [prev, pt, nxt] = points;
-    // Calculate angles of vectors pt->prev and pt->nxt from positive x-axis
-    const angleRadPtPrev = Math.atan2(prev[1] - pt[1], prev[0] - pt[0]);
-    const angleRadPtNxt = Math.atan2(nxt[1] - pt[1], nxt[0] - pt[0]);
-
-    // Calculate interior angle assuming CCW polygon points.
-    // This is the angle swept CCW from vector (pt->nxt) to vector (pt->prev).
-    let interiorAngleRad = angleRadPtPrev - angleRadPtNxt;
-    // Normalize to [0, 2*PI)
-    if (interiorAngleRad < 0) {
-      interiorAngleRad += 2 * Math.PI;
-    }
-    
-    // This is the magnitude of the interior angle in degrees.
-    const interiorAngleMagnitudeDeg = Math.round(((interiorAngleRad * 180) / Math.PI) * 1000) / 1000;
-    return {
-      angleRadPtPrev,
-      angleRadPtNxt,
-      interiorAngleMagnitudeDeg,
-    }
+  const removeSurface = () => {
+    setSurface({ id: self.crypto.randomUUID(), points: [], pattern: defaultPattern });
+    dispatch({ type: 'default' });
   }
+  
 
   const isRightAngle = (points: [Point, Point, Point]) => { 
     const [a, b, c] = points;
@@ -299,11 +309,60 @@ export const Planner: React.FC<PlannerProps> = ({ width, height }) => {
     });
   }
 
-  const scale = 0.01; // 100px = 1m
+  const [globalScale, setGlobalScale] = React.useState(100);
+
   const deletionDisabled = surface.points.length <= 3;
+
+
+  const handleSurfaceEditorSubmit = (pattern: Pattern) => {
+    setSurface((current) => ({
+      ...current,
+      pattern,
+    }));
+    setSurfaceEditorOpen(false);
+  }
+
+  const handleSurfaceChange = (newPattern: Pattern) => {
+    setSurface((current) => ({
+      ...current,
+      pattern: newPattern,
+    })); 
+  }
+
+  const downloadSurface = () => {
+    const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(surface));
+    const downloadAnchorNode = document.createElement("a");
+    downloadAnchorNode.setAttribute("href", dataStr);
+    downloadAnchorNode.setAttribute("download", `surface-${surface.id}.json`);
+    document.body.appendChild(downloadAnchorNode); // required for firefox
+    downloadAnchorNode.click();
+    downloadAnchorNode.remove();
+  }
+
+  const uploadSurface = (file: File) => {
+    const reader = new FileReader();
+    reader.onload = (event) => {
+      try {
+        const data = JSON.parse(event.target?.result as string);
+        if (data && data.points && Array.isArray(data.points) && data.pattern) {
+          setSurface({
+            id: data.id || Date.now().toString(),
+            points: data.points,
+            pattern: data.pattern,
+          });
+        } else {
+          console.error("Invalid surface data format");
+        }
+      } catch (error) {
+        console.error("Error parsing surface data:", error);
+      }
+    };
+    reader.readAsText(file);
+  };
   
   return (
     <div className="relative">
+      {surfaceEditorOpen && (<PatternEditor className="" onClose={() => setSurfaceEditorOpen(false)} onSubmit={handleSurfaceEditorSubmit} value={surface.pattern} />)}
       <div className="absolute z-10 left-1/2 top-2 -translate-x-1/2 flex items-center bg-gray-100 shadow-md p-1 space-x-2 rounded-lg">
         <ToolbarButton onClick={() => dispatch({type: 'default'})} active={['default', 'edit-corner', 'edit-wall'].includes(state.mode)} icon={<SplinePointer />} />
         <ToolbarButton onClick={() => dispatch({type: 'preview'})} active={state.mode === 'preview'} icon={<Hand />} />
@@ -311,6 +370,28 @@ export const Planner: React.FC<PlannerProps> = ({ width, height }) => {
         <ToolbarButton onClick={() => dispatch({type: 'subtract-surface'})} active={state.mode === 'subtract-surface'} icon={<SquaresSubtract />} />
         <ToolbarButton onClick={undo} disabled={!canUndo} icon={<Undo />} />
         <ToolbarButton onClick={redo} disabled={!canRedo} icon={<Redo />} />
+        <div className="h-6 w-0 border-l border-solid border-l-black" />
+        <ToolbarButton onClick={() => saveToLocalStorage('surface', surface)} icon={<Save />} />
+        <ToolbarButton onClick={() => downloadSurface()} icon={<Download />} />
+        <ToolbarButton onClick={() => {document.getElementById('upload-surface')?.click()}} icon={<Upload />} />
+        <input
+          type="file"
+          accept=".json"
+          className="hidden"
+          onChange={(e) => {
+            const file = e.target.files?.[0];
+            if (file) {
+              uploadSurface(file);
+            }
+            e.target.value = ''; // Reset file input
+          }}
+          id="upload-surface"
+        />
+      </div>
+      <div className="absolute z-10 right-2 top-2 bg-gray-100 shadow-md p-1 space-x-2 rounded-lg flex items-center justify-center">
+        <ToolbarButton onClick={() => setGlobalScale(c => c < 300 ? c + 10 : 300)} icon={<ZoomIn />} />
+        <ToolbarButton onClick={() => setGlobalScale(100)} label={`${globalScale}%`} />
+        <ToolbarButton onClick={() => setGlobalScale(c => c > 0 ? c - 10 : 0)} icon={<ZoomOut />} />
       </div>
       {state.mode === 'edit-corner' && (
         <div className="absolute z-10 left-2 top-5 w-32 bg-gray-100 shadow-md p-1 space-x-2 rounded-lg">
@@ -318,13 +399,19 @@ export const Planner: React.FC<PlannerProps> = ({ width, height }) => {
             disabled={isRightAngle([surface.points[state.prevWallIndex], surface.points[state.wallIndex], surface.points[state.nextWallIndex]])} 
             onClick={() => makeAngleRight(state.prevWallIndex, state.wallIndex, state.nextWallIndex)} 
             wide
-            icon={<RotateCwSquare />} />
+            icon={<RightAngle />} />
           <ToolbarButton variant="danger" disabled={deletionDisabled} onClick={() => removePoints([state.wallIndex])} wide icon={<Trash2 />} />
         </div>
       )}
       {state.mode === 'edit-wall' && (
         <div className="absolute z-10 left-2 top-5 w-32 bg-gray-100 shadow-md p-1 space-x-2 rounded-lg">
           <ToolbarButton variant="danger" disabled={true} onClick={() => removePoints([state.nextWallIndex])} wide icon={<Trash2 />} />
+        </div>
+      )}
+      {state.mode === 'edit-surface' && (
+        <div className="absolute z-10 left-2 top-5 w-32 bg-gray-100 shadow-md p-1 space-x-2 rounded-lg">
+          <ToolbarButton wide onClick={() => setSurfaceEditorOpen(true)} icon={<PencilRuler />} />
+          <ToolbarButton variant="danger" onClick={removeSurface} wide icon={<Trash2 />} />
         </div>
       )}
       <Stage
@@ -342,16 +429,31 @@ export const Planner: React.FC<PlannerProps> = ({ width, height }) => {
         onMouseMove={handleMouseMove}
         onMouseUp={handleMouseUp}
         onClick={handleStageClick}
+        scale={{ x: globalScale / 100, y: globalScale / 100 }}
+        draggable={state.mode === 'preview'}
+        onDragEnd={handleStageDragEnd}
+        onDragStart={handleStageDragStart}
       >
         <Layer>
           {surface.points.length > 0 && (
-            <Surface id={surface.id} points={surface.points} />
+            <Surface 
+              id={surface.id} 
+              points={surface.points} 
+              disabled={!state.editable} 
+              pattern={surface.pattern}
+              edit={state.mode === 'edit-surface'} 
+              onClick={() => dispatch({ type: "edit-surface" })} 
+              onChange={handleSurfaceChange}
+              />
           )}
           {currentSurface && (
             <Line
               points={currentSurface.points.flat()}
-              stroke={currentSurface.state === "valid" ? "blue" : "red"}
+              stroke={currentSurface.state === "valid" ? "black" : "rgba(0, 0, 0, 0.2)"}
+              lineCap="round"
+              lineJoin="round"
               dash={[4, 4]}
+              
               closed
             />
           )}
@@ -387,11 +489,16 @@ export const Planner: React.FC<PlannerProps> = ({ width, height }) => {
                 <WallDimension
                   pointA={pt}
                   pointB={nxt}
-                  scale={scale}
+                  scale={0.01}
                 />
                 {isNonRightAngle && (
                   <AngleMarker x={pt[0]} y={pt[1]} angle={sweepAngleDeg} rotation={rotationStartDeg} />
                 )}
+                {/* <PatternDistance 
+                  pointA={pt} 
+                  pointB={nxt} 
+                  pattern={surface.pattern}
+                /> */}
               </React.Fragment>
             );
           })}

@@ -31,6 +31,12 @@ interface ReducerStateEditCorner {
   mode: 'edit-corner';
 }
 
+interface ReducerStateEditSurface {
+  wallIndex: null;
+  mode: 'edit-surface';
+  editable: true;
+}
+
 interface ReducerStateAddSurface {
   mode: 'add-surface';
   wallIndex: null;
@@ -43,7 +49,7 @@ interface ReducerStateSubtractSurface {
   editable: true;
 }
 
-type ReducerState = (ReducerStateDefault | ReducerStatePreview | ReducerStateEditWall | ReducerStateEditCorner | ReducerStateAddSurface | ReducerStateSubtractSurface)
+type ReducerState = (ReducerStateDefault | ReducerStatePreview | ReducerStateEditWall | ReducerStateEditCorner | ReducerStateEditSurface|  ReducerStateAddSurface | ReducerStateSubtractSurface)
 
 type Actions = {
   type: 'default'
@@ -60,13 +66,14 @@ type Actions = {
     wallIndex: number;
   }
 } | {
+  type: 'edit-surface';
+} | {
   type: 'add-surface';
 } | {
   type: 'subtract-surface';
 }
 
 const getReducer = (surfacePoints: Point[]): React.Reducer<ReducerState, Actions> => (state, action) => {
-  console.log('Reducer state', action);
   switch (action.type) {
     case 'default':
       return {
@@ -108,6 +115,12 @@ const getReducer = (surfacePoints: Point[]): React.Reducer<ReducerState, Actions
           prevWallIndex,
           editable: true,
         }
+      }
+    case 'edit-surface':
+      return {
+        mode: 'edit-surface',
+        wallIndex: null,
+        editable: true,
       }
     case 'add-surface':
       return {

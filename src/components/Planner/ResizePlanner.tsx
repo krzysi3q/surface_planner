@@ -11,7 +11,7 @@ export interface ResizePlannerProps extends Omit<PlannerProps, "width" | "height
 
 export const ResizePlanner: React.FC<ResizePlannerProps> = ({ className }) => {
   const [wrapperRef, setWrapperRef] = React.useState<HTMLDivElement | null>(null);
-  const [{width, height}, setPlannerDimensions] = React.useState<{ width: number; height: number }>({ width: 0, height: 0 });
+  const [dimensions, setPlannerDimensions] = React.useState<{ width: number; height: number } | null>(null);
 
   useEffect(() => {
     const handleResize = () => {
@@ -26,8 +26,8 @@ export const ResizePlanner: React.FC<ResizePlannerProps> = ({ className }) => {
         removeEventListener('resize', handleResize);
       }
   }, [wrapperRef])
-
+ 
   return <div ref={setWrapperRef} className={classMerge("w-full h-full", className)}>
-    {wrapperRef && <Planner width={width} height={height} /> }
+    {dimensions && <Planner width={dimensions.width} height={dimensions.height} /> }
   </div>
 }

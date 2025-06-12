@@ -1,15 +1,17 @@
 import React from "react";
 
 import { Text } from "react-konva";
-import { Point } from "./types";
+import { Point } from "../types";
 
 interface WallDimensionProps {
   pointA: Point,
   pointB: Point,
   scale: number,
+  fraction?: number,
+  unit?: string,
 }
 
-export const WallDimension: React.FC<WallDimensionProps> = ({ pointA, pointB, scale }) => {
+export const WallDimension: React.FC<WallDimensionProps> = ({ pointA, pointB, scale, fraction = 2, unit = 'm' }) => {
   const length = Math.hypot(pointB[0] - pointA[0], pointB[1] - pointA[1]) * scale;
   const midX = (pointA[0] + pointB[0]) / 2;
   const midY = (pointA[1] + pointB[1]) / 2;
@@ -18,7 +20,7 @@ export const WallDimension: React.FC<WallDimensionProps> = ({ pointA, pointB, sc
   const offset = -20; // Offset to move dimensions outside
   const offsetX = offset * Math.cos(angle + Math.PI / 2);
   const offsetY = offset * Math.sin(angle + Math.PI / 2);
-  const text = `${length.toFixed(2)} m`;
+  const text = `${length.toFixed(fraction)} ${unit}`;
   return (
     <Text
       x={midX + offsetX}
