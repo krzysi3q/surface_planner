@@ -26,6 +26,7 @@ export const WallDimension: React.FC<WallDimensionProps> = ({ pointA, pointB, sc
       x={midX + offsetX}
       y={midY + offsetY}
       text={text}
+      listening={false}
       rotation={(angle * 180) / Math.PI}
       fontSize={14}
       fill="black"

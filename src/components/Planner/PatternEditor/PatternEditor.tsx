@@ -3,16 +3,22 @@ import { classMerge } from "@/utils/classMerge";
 
 import { ToolbarButton } from "../../ToolbarButton";
 import { CircleCheck, Copy, Eye, Hexagon, Pentagon, RectangleHorizontal, RectangleVertical, RotateCcw, RulerDimensionLine, Square, Trash2, Triangle, X } from "lucide-react";
-import { Group, Layer, Rect, Stage } from "react-konva";
 
 import { Pattern, Point, TileType } from "../types"
-import { getBoundingBox, rotateShape, moveTo, getAngles, getCircumscribedCircle, createPatternCanvas, drawPattern } from "../utils"
+import { getBoundingBox, rotateShape, moveTo, getAngles, getCircumscribedCircle, drawPattern } from "../utils"
 import { setNoneCursor, setMoveCursor, setEwResizeCursor, setNsResizeCursor, removeCustomCursor } from "../domUtils"
 
-import { Tile, TileEventData } from "./Tile";
-import Konva from "konva";
 
-const patternCanvas = createPatternCanvas();
+import { TileEventData } from "./Tile";
+import { PatternCanvas } from "./PatternCanvas"
+import Konva from "konva";
+import { ResizePlanner } from "../ResizePlanner";
+import { PatternButton } from "./PatternButton";
+
+import readyPatternsJson from "./ready_patterns.json"
+
+
+const READY_TO_USE_PATTERNS: Pattern[] = readyPatternsJson as Pattern[];
 
 interface PatternEditorProps {
   className?: string;
@@ -20,10 +26,6 @@ interface PatternEditorProps {
   value?: Pattern;
   onSubmit?: (pattern: Pattern) => void;
 }
-
-
-const canvasHeight = 500;
-const canvasWidth = 640;
 
 const getEquilateralTrianglePoints = (sideLength: number): Point[] => {
   const height = Math.sqrt(3) / 2 * sideLength;
@@ -369,6 +371,8 @@ export const PatternEditor: React.FC<PatternEditorProps> = ({className, value, o
     const position = getPosition(e) 
     if (position && activeData && activeData.action === 'rotate' && initialPosition.current) {
       const tile = activeData.tile;
+      const canvasWidth = e.target.getStage()?.width() || 0;
+      const canvasHeight = e.target.getStage()?.height() || 0;
       const centerX = tile.metadata.centerX + (canvasWidth/2 - pattern.width/2);
       const centerY = tile.metadata.centerY + (canvasHeight/2 - pattern.height/2);
       const { interiorAngleMagnitudeDeg } = getAngles([[position.x, position.y],  [centerX, centerY], [initialPosition.current.x, initialPosition.current.y]])
@@ -413,6 +417,7 @@ export const PatternEditor: React.FC<PatternEditorProps> = ({className, value, o
         }
       }
 
+      console.log(scale)
       
       setPattern(prev => {
         const patternScale = prev.scale * 1000
@@ -616,60 +621,36 @@ export const PatternEditor: React.FC<PatternEditorProps> = ({className, value, o
             </div> */}
           </div>
         </div>
-        <div className="relative">
-          <Stage 
+        <div>
+          <h2 className="text-lg font-bold text-black">Patterns:</h2>
+          <div className="flex flex-wrap gap-2">
+            {READY_TO_USE_PATTERNS.map((pat, i) => (
+              <PatternButton 
+                key={i}
+                pattern={pat}
+                onClick={(p) => {
+                  setPattern({...p, tiles: [...p.tiles]});
+                }}
+              />))}
+          </div>
+        </div>
+        <div className="relative h-[500px]">
+          <ResizePlanner render={(dimensions) => <PatternCanvas 
             ref={stageRef}
-            className="w-full border border-solid border-black rounded-2xl" 
-            style={{width: canvasWidth, height: canvasHeight}} height={canvasHeight} width={canvasWidth}
-            onClick={onBackgroundClick}
-            onMouseMove={onMouseMove}
-            onMouseUp={onMouseUp}>
-            <Layer >
-              <Rect 
-                x={0} y={0}
-                listening={false}
-                width={canvasWidth}
-                height={canvasHeight} 
-                fillPatternImage={patternCanvas}
-                fillPatternRepeat="repeat"
-                fillPatternRotation={Math.PI / 4}
-                fillRule="evenodd" /> 
-                <Group x={canvasWidth/2 - pattern.width/2} y={canvasHeight/2 - pattern.height/2}>
-                  <Rect 
-                    x={0} y={0}
-                    width={pattern.width}
-                    height={pattern.height} 
-                    listening={false}
-                    fill="white" />
-                  {pattern.tiles.map((tile) => (
-                    <Tile
-                      key={tile.id}
-                      id={tile.id}
-                      type={tile.type}
-                      points={tile.points}
-                      metadata={tile.metadata}
-                      color={tile.color}
-                      scale={pattern.scale / 100}
-                      isSelected={edited === tile.id}
-                      isDragging={activeData !== null}
-                      onClick={onTileClick}
-                      gapColor={pattern.gapColor}
-                      gapSize={pattern.tilesGap}
-                      onMouseDown={onTileDown}
-                      onMouseEnter={onTileEnter}
-                      onMouseLeave={onTileLeave}
-                    />
-                  ))}
-                  <Rect 
-                    x={0} y={0}
-                    width={pattern.width}
-                    height={pattern.height} 
-                    listening={false}
-                    stroke={"rgba(0,0,0,0.1)"}
-                    fill="transparent" />
-                </Group>
-            </Layer>
-          </Stage>
+            pattern={pattern}
+            height={dimensions.height}
+            width={dimensions.width}
+            isDragging={activeData !== null}
+            selectedId={edited}
+            onStageClick={onBackgroundClick}
+            onStageMouseMove={onMouseMove}
+            onStageMouseUp={onMouseUp}
+            onTileClick={onTileClick}
+            onTileDown={onTileDown}
+            onTileEnter={onTileEnter}
+            onTileLeave={onTileLeave}            
+          />
+          } />
           <div className="absolute bottom-3 left-1/2 -translate-x-1/2 flex gap-1 items-center justify-center px-4 bg-gray-100 shadow-md p-1 space-x-2 rounded-lg">
               <RulerDimensionLine className="text-black" />
               <input type="number" min={0} step={1} disabled={!pattern.tiles.length} className="w-20 h-8 text-black text-center border border-black rounded-md bg-gray-100" value={pattern.width * (pattern.scale * 10)} onChange={e => setPattern(c=> ({...c, width: e.target.valueAsNumber / (pattern.scale * 10)}))} />

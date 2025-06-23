@@ -10,6 +10,7 @@ interface EdgeEditProps {
   onMouseDown?: (e: Konva.KonvaEventObject<MouseEvent>, direction: 'ns' | 'ew') => void;
   onMouseEnter?: (e: Konva.KonvaEventObject<MouseEvent>, direction: 'ns' | 'ew') => void;
   onMouseLeave?: (e: Konva.KonvaEventObject<MouseEvent>, direction: 'ns' | 'ew') => void;
+  name?: string;
 }
 
 
@@ -72,7 +73,7 @@ function getRectanglePoints(
 }
 
 export const EdgeResize: React.FC<EdgeEditProps> = (props) => {
-  const { pointA, pointB, onMouseEnter, onMouseLeave, onMouseDown } = props;
+  const { pointA, pointB, onMouseEnter, onMouseLeave, onMouseDown, name } = props;
   const points = useMemo(() => getRectanglePoints(pointA, pointB, 11, 30), [pointA, pointB]);
 
   // Determine orientation: horizontal (width > height) or vertical (height > width)
@@ -84,6 +85,11 @@ export const EdgeResize: React.FC<EdgeEditProps> = (props) => {
     handleMouseDown: (e: Konva.KonvaEventObject<MouseEvent>) => onMouseDown?.(e, isHorizontal ? 'ns' : 'ew')
   }), [onMouseEnter, onMouseLeave, onMouseDown, isHorizontal]);
 
+  const elName = useMemo(() => {
+    const prefix = name ? `${name}-resize` : 'resize' 
+    return (isHorizontal ? `${prefix}-ns` : `${prefix}-ew`)
+  }, [name, isHorizontal]);
+
   return (
     <Line 
       points={points} // Rectangle coordinates    
@@ -94,6 +100,8 @@ export const EdgeResize: React.FC<EdgeEditProps> = (props) => {
       onMouseEnter={handleMouseEnter}
       onMouseLeave={handleMouseLeave}
       onMouseDown={handleMouseDown}
+      name={elName} // Use the name prop for identification
+      listening={true} // Ensure the shape is interactive
     />
   );
 };

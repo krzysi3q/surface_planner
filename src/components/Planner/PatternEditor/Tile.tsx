@@ -95,6 +95,7 @@ export const Tile: React.FC<TileProps> = ({ points, color, type, id, metadata, i
         onMouseLeave={handleMouseLeave}
         onMouseDown={handleMouseDown}
         onClick={handleClick}
+        name="tile"
       />
       {isSelected && points.map((point, i) => {
         const nxt = points[(i + 1) % points.length];
@@ -113,6 +114,7 @@ export const Tile: React.FC<TileProps> = ({ points, color, type, id, metadata, i
           onMouseEnter={circleEvents.mouseEnter}
           onMouseDown={circleEvents.down}
           onMouseLeave={circleEvents.mouseLeave}
+          name="rotate-handle"
         />
       )}
       {isSelected && (
@@ -132,6 +134,7 @@ export const Tile: React.FC<TileProps> = ({ points, color, type, id, metadata, i
           fontSize={12}
           align="center" 
           verticalAlign="center" 
+          listening={false}
         />)}
     </>
   )

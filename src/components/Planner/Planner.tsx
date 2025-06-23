@@ -19,6 +19,7 @@ import { ToolbarButton } from "../ToolbarButton";
 import { classMerge } from "@/utils/classMerge";
 import { Surface } from "./Surface";
 import { PatternEditor } from "./PatternEditor/PatternEditor";
+import { ResizePlanner } from "./ResizePlanner";
 
 type TemporarySurface = SurfaceType & {
   state: "error" | "valid";
@@ -364,7 +365,7 @@ export const Planner: React.FC<PlannerProps> = ({ width, height }) => {
     <div className="relative">
       {surfaceEditorOpen && (<PatternEditor className="" onClose={() => setSurfaceEditorOpen(false)} onSubmit={handleSurfaceEditorSubmit} value={surface.pattern} />)}
       <div className="absolute z-10 left-1/2 top-2 -translate-x-1/2 flex items-center bg-gray-100 shadow-md p-1 space-x-2 rounded-lg">
-        <ToolbarButton onClick={() => dispatch({type: 'default'})} active={['default', 'edit-corner', 'edit-wall'].includes(state.mode)} icon={<SplinePointer />} />
+        <ToolbarButton onClick={() => dispatch({type: 'default'})} active={state.editable} icon={<SplinePointer />} />
         <ToolbarButton onClick={() => dispatch({type: 'preview'})} active={state.mode === 'preview'} icon={<Hand />} />
         <ToolbarButton onClick={() => dispatch({type: 'add-surface'})} active={state.mode === 'add-surface'} icon={<SquaresUnite />} />
         <ToolbarButton onClick={() => dispatch({type: 'subtract-surface'})} active={state.mode === 'subtract-surface'} icon={<SquaresSubtract />} />
@@ -532,3 +533,9 @@ export const Planner: React.FC<PlannerProps> = ({ width, height }) => {
     </div>
   );
 };
+
+export const DynamicSizePlanner = () => {
+  return <ResizePlanner render={(dimensions) => (
+    <Planner width={dimensions.width} height={dimensions.height} />
+  )} />
+}
