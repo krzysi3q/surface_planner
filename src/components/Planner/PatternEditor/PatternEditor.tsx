@@ -392,53 +392,61 @@ export const PatternEditor: React.FC<PatternEditorProps> = ({className, value, o
       }))
     }
 
-    // --- Uniform resize from center, scale factor from axis movement ---
+    // --- Resize shapes ---
     if (position && activeData && (activeData.action === 'resize-ns' || activeData.action === 'resize-ew') && initialPosition.current) {
       const tile = activeData.tile;
       const center = [tile.metadata.centerX, tile.metadata.centerY];
-      let scale = 1;
       const newTile = {
           ...tile,
           points: [] as Point[],
         };
-      if (activeData.action === 'resize-ew') {
-        // Use horizontal movement for uniform scaling
-        const initialDist = initialPosition.current.x - center[0];
-        const currentDist = position.x - center[0];
-        if (initialDist !== 0) {
-          scale = currentDist / initialDist;
-        }
-      } else if (activeData.action === 'resize-ns') {
-        // Use vertical movement for uniform scaling
-        const initialDist = initialPosition.current.y - center[1];
-        const currentDist = position.y - center[1];
-        if (initialDist !== 0) {
-          scale = currentDist / initialDist;
-        }
-      }
-
-      console.log(scale)
       
       setPattern(prev => {
-        const patternScale = prev.scale * 1000
+        const patternScale = prev.scale * 1000;
+        
         if (activeData.tile.type === 'rectangle') {
-          if (activeData.isSecondary) {
-            // Apply uniform scaling from center
+          // For rectangles, use direct mouse movement distance with reduced sensitivity
+          const dx = (position.x - initialPosition.current!.x) * 0.25;
+          const dy = (position.y - initialPosition.current!.y) * 0.25;
+          
+          if (activeData.action === 'resize-ew') {
+            // Horizontal resize - move left and right edges by dx/2 each
             const newPoints = tile.points.map<Point>(point => [
-              Math.round((center[0] + (point[0] - center[0]) * scale) * patternScale) / patternScale,
+              point[0] < center[0] ? 
+                Math.round((point[0] - dx/2) * patternScale) / patternScale : 
+                Math.round((point[0] + dx/2) * patternScale) / patternScale,
               point[1]
             ]);
             newTile.points = newPoints;
-          }
-          else {
-            // Apply uniform scaling from center
+          } else if (activeData.action === 'resize-ns') {
+            // Vertical resize - move top and bottom edges by dy/2 each
             const newPoints = tile.points.map<Point>(point => [
               point[0],
-              Math.round((center[1] + (point[1] - center[1]) * scale) * patternScale) / patternScale
+              point[1] < center[1] ? 
+                Math.round((point[1] + dy/2) * patternScale) / patternScale : 
+                Math.round((point[1] - dy/2) * patternScale) / patternScale
             ]);
             newTile.points = newPoints;
           }
         } else {
+          // For other shapes (triangle, pentagon, etc.), use proportional scaling based on distance from center
+          let scale = 1;
+          
+          if (activeData.action === 'resize-ew') {
+            // Use horizontal movement for uniform scaling with reduced sensitivity
+            const initialDist = initialPosition.current!.x - center[0];
+            const currentDist = center[0] + (position.x - center[0]) * 0.25;
+            if (initialDist !== 0) {
+              scale = (currentDist - center[0]) / initialDist + 1;
+            }
+          } else if (activeData.action === 'resize-ns') {
+            // Use vertical movement for uniform scaling with reduced sensitivity
+            const initialDist = initialPosition.current!.y - center[1];
+            const currentDist = center[1] + (position.y - center[1]) * 0.25;
+            if (initialDist !== 0) {
+              scale = (currentDist - center[1]) / initialDist + 1;
+            }
+          }
           
           // Apply uniform scaling from center
           const newPoints = tile.points.map<Point>(point => [
