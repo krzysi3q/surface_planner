@@ -2,7 +2,7 @@ import React, { useState } from "react";
 import { classMerge } from "@/utils/classMerge";
 
 import { ToolbarButton } from "../../ToolbarButton";
-import { CircleCheck, Copy, Eye, Hexagon, Pentagon, RectangleHorizontal, RectangleVertical, RotateCcw, RulerDimensionLine, Square, Trash2, Triangle, X } from "lucide-react";
+import { CircleCheck, Copy, Diamond, Eye, Hexagon, RectangleHorizontal, RectangleVertical, RotateCcw, RulerDimensionLine, Square, Trash2, Triangle, X } from "lucide-react";
 
 import { Pattern, Point, TileType } from "../types"
 import { getBoundingBox, rotateShape, moveTo, getAngles, getCircumscribedCircle, drawPattern } from "../utils"
@@ -17,8 +17,12 @@ import { PatternButton } from "./PatternButton";
 
 import readyPatternsJson from "./ready_patterns.json"
 
+type ReadyPattern = {
+  displayScale: number;
+  pattern: Pattern;
+}
 
-const READY_TO_USE_PATTERNS: Pattern[] = readyPatternsJson as Pattern[];
+const READY_TO_USE_PATTERNS: ReadyPattern[] = readyPatternsJson as ReadyPattern[];
 
 interface PatternEditorProps {
   className?: string;
@@ -201,20 +205,19 @@ export const PatternEditor: React.FC<PatternEditorProps> = ({className, value, o
     });
   }
 
-  const addPentagon = () => {
+  const addDiamond = () => {
     setPattern(prev => {
       const items = prev.tiles.length
       const points = moveTo([
         [50, 0],
-        [100, 38],
-        [81, 98],
-        [19, 98],
-        [0, 38]
+        [75, 43.3],
+        [50, 86.6],
+        [25, 43.3]
       ], items * 10, items * 10);
       const { center } = getCircumscribedCircle(points);
       const newTile: TileType = {
         id: self.crypto.randomUUID(),
-        type: "pentagon",
+        type: "diamond",
         points: points,
         color: "#d6d6d6",
         metadata: {
@@ -236,8 +239,8 @@ export const PatternEditor: React.FC<PatternEditorProps> = ({className, value, o
         ...prev,
         tiles: [...prev.tiles, newTile]
       }
-    });
-  }
+    })
+  };
 
   const addHexagon = () => {
     setPattern(prev => {
@@ -435,16 +438,18 @@ export const PatternEditor: React.FC<PatternEditorProps> = ({className, value, o
           if (activeData.action === 'resize-ew') {
             // Use horizontal movement for uniform scaling with reduced sensitivity
             const initialDist = initialPosition.current!.x - center[0];
-            const currentDist = center[0] + (position.x - center[0]) * 0.25;
+            const mouseMovement = (position.x - initialPosition.current!.x) * 0.25;
+            const currentDist = initialDist + mouseMovement;
             if (initialDist !== 0) {
-              scale = (currentDist - center[0]) / initialDist + 1;
+              scale = currentDist / initialDist;
             }
           } else if (activeData.action === 'resize-ns') {
             // Use vertical movement for uniform scaling with reduced sensitivity
             const initialDist = initialPosition.current!.y - center[1];
-            const currentDist = center[1] + (position.y - center[1]) * 0.25;
+            const mouseMovement = (position.y - initialPosition.current!.y) * 0.25;
+            const currentDist = initialDist + mouseMovement;
             if (initialDist !== 0) {
-              scale = (currentDist - center[1]) / initialDist + 1;
+              scale = currentDist / initialDist;
             }
           }
           
@@ -582,6 +587,11 @@ export const PatternEditor: React.FC<PatternEditorProps> = ({className, value, o
             point[0] + 10,
             point[1] + 10
           ]),
+          metadata: {
+            ...tile.metadata,
+            centerX: tile.metadata.centerX + 10,
+            centerY: tile.metadata.centerY + 10
+          }
         }
         setPattern(prev => ({
           ...prev,
@@ -619,7 +629,7 @@ export const PatternEditor: React.FC<PatternEditorProps> = ({className, value, o
             <ToolbarButton onClick={() => addRectangleHorizontal()} icon={<RectangleHorizontal />} />
             <ToolbarButton onClick={() => addRectangleVertical()} icon={<RectangleVertical />} />
             <ToolbarButton onClick={() => addSquare()} icon={<Square />} />
-            <ToolbarButton onClick={() => addPentagon()} icon={<Pentagon />} />
+            <ToolbarButton onClick={() => addDiamond()} icon={<Diamond />} />
             <ToolbarButton onClick={() => addHexagon()} icon={<Hexagon />} />
             <div className="grow" />
             {/* <div className="flex items-center gap-1">
@@ -632,12 +642,13 @@ export const PatternEditor: React.FC<PatternEditorProps> = ({className, value, o
         <div>
           <h2 className="text-lg font-bold text-black">Patterns:</h2>
           <div className="flex flex-wrap gap-2">
-            {READY_TO_USE_PATTERNS.map((pat, i) => (
+            {READY_TO_USE_PATTERNS.map((readyPattern, i) => (
               <PatternButton 
                 key={i}
-                pattern={pat}
+                pattern={readyPattern.pattern}
+                displayScale={readyPattern.displayScale}
                 onClick={(p) => {
-                  setPattern({...p, tiles: [...p.tiles]});
+                  setPattern({...p, tiles: p.tiles.map(t => ({...t, id: self.crypto.randomUUID() }))});
                 }}
               />))}
           </div>

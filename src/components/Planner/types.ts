@@ -21,7 +21,7 @@ export interface TileType {
   id: string;
   points: Point[]
   color: string
-  type: 'triangle' | 'rectangle' | 'square' | 'pentagon' | 'hexagon'
+  type: 'triangle' | 'rectangle' | 'square' | 'diamond' | 'hexagon'
   metadata: TileMetadata
 }
 
