@@ -14,6 +14,7 @@ interface EdgeEditProps {
   onMouseEnter?: (e: Konva.KonvaEventObject<MouseEvent>) => void;
   onMouseLeave?: (e: Konva.KonvaEventObject<MouseEvent>) => void;
   id?: string;
+  disabled?: boolean;
 }
 
 
@@ -66,13 +67,13 @@ function getRectanglePoints(pointA: Point, pointB: Point, size: number): number[
 }
 
 const EdgeEdit: React.FC<EdgeEditProps> = (props) => {
-  const { pointA, pointB, onClick, onMouseEnter, onMouseLeave, wallIndex, edit } = props;
+  const { pointA, pointB, onClick, onMouseEnter, onMouseLeave, wallIndex, edit, disabled } = props;
   const [state, setState] = React.useState<'default' | 'hover' >('default');
   const points = useMemo(() => getRectanglePoints(pointA, pointB, 16), [pointA, pointB]);
   const {handleMouseEnter, handleMouseLeave, handleClick } = useMemo(() => ({
     handleMouseEnter: (e: Konva.KonvaEventObject<MouseEvent>) => {
       onMouseEnter?.(e);
-      if (edit) return;
+      if (edit || disabled) return;
       setState('hover');
       setPointerCursor(e)
     },
@@ -84,7 +85,7 @@ const EdgeEdit: React.FC<EdgeEditProps> = (props) => {
     handleClick: () => {
       onClick?.([pointA, pointB], wallIndex);
     }
-  }), [onMouseEnter, edit, onMouseLeave, onClick, wallIndex, pointA, pointB]);
+  }), [onMouseEnter, edit, disabled, onMouseLeave, onClick, pointA, pointB, wallIndex]);
 
   return (
     <Group>

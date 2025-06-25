@@ -7,13 +7,13 @@ import { RightAngle } from "@/components/Icons/RightAngle";
 import Konva from "konva";
 
 import { useHistoryState } from "@/hooks/useHistoryState";
-import { subtractSurfaces, unionSurfaces, pointInSurface, isSurfaceIntersecting, saveToLocalStorage, loadFromLocalStorage, getAngles } from "./utils";
+import { subtractSurfaces, unionSurfaces, isSurfaceIntersecting, saveToLocalStorage, loadFromLocalStorage, getAngles, getSurfaceArea, doSurfacesIntersect } from "./utils";
 import { removeCustomCursor, setGrabbingCursor } from "./domUtils"
 import EdgeEdit from "./EdgeEdit";
 import { MoveHandler } from "./MoveHandler";
 import { CornerEdit } from "./CornerEdit";
 import { WallDimension } from "./components/WallDimension";
-import { usePlannerReducer } from "./usePlannerReducer";
+import { ReducerStateAddSurface, ReducerStateSubtractSurface, usePlannerReducer } from "./usePlannerReducer";
 import { AngleMarker } from "./AngleMarker";
 import { ToolbarButton } from "../ToolbarButton";
 import { classMerge } from "@/utils/classMerge";
@@ -23,6 +23,7 @@ import { ResizePlanner } from "./ResizePlanner";
 
 type TemporarySurface = SurfaceType & {
   state: "error" | "valid";
+  idle: boolean;
 };
 
 // Props for Planner
@@ -51,6 +52,18 @@ const getWallKey = (pointA: Point, pointB: Point) => {
 
 const isSamePoint = (pointA: Point, pointB: Point) => {
   return pointA[0] === pointB[0] && pointA[1] === pointB[1];
+}
+
+const validateSurfaceOperation = (currentSurface: Point[], newSurface: Point[], operation: ReducerStateAddSurface['mode'] | ReducerStateSubtractSurface['mode']) => {
+  if (getSurfaceArea(newSurface) < 10) {
+      return false;
+  }
+
+  if (operation === 'add-surface' && currentSurface.length > 0 && !doSurfacesIntersect(currentSurface, newSurface)) {
+      return false;
+  }
+
+  return true;
 }
 
 const useDragStage = (setSurface: ReturnType<typeof useHistoryState<{id: string, points: Point[], pattern: Pattern}>>['set'], enabled = true) => {
@@ -194,7 +207,7 @@ export const Planner: React.FC<PlannerProps> = ({ width, height }) => {
         [pos.x, pos.y],
         [pos.x, pos.y],
       ];
-      const newSurface: TemporarySurface = { id, points, state: "valid", pattern: surface.pattern };
+      const newSurface: TemporarySurface = { id, points, state: "valid", pattern: surface.pattern, idle: true };
       setCurrentSurface(newSurface);
     } else if (state.mode === 'preview') {
       setGrabbingCursor(e);
@@ -218,14 +231,11 @@ export const Planner: React.FC<PlannerProps> = ({ width, height }) => {
         [x0, y1],
       ];
 
-      const someInside = surface.points.length === 0 || points.some((point) =>
-        pointInSurface(point, surface.points)
-      );
-
       setCurrentSurface({
         ...currentSurface,
         points,
-        state: someInside ? "valid" : "error",
+        state: validateSurfaceOperation(surface.points, points, state.mode) ? "valid" : "error",
+        idle: false,
       });
     }
   };
@@ -235,6 +245,14 @@ export const Planner: React.FC<PlannerProps> = ({ width, height }) => {
       if (!currentSurface) return;
       // first rectangle: just add
       if (surface.points.length === 0) {
+        if (getSurfaceArea(currentSurface.points) < 100) {
+          currentSurface.points = [
+            currentSurface.points[0],
+            [currentSurface.points[0][0] + 100, currentSurface.points[0][1]],
+            [currentSurface.points[0][0] + 100, currentSurface.points[0][1] + 100],
+            [currentSurface.points[0][0], currentSurface.points[0][1] + 100]
+          ]
+        }
         setSurface({...currentSurface, points: unionSurfaces([], currentSurface.points)[0]});
         setCurrentSurface(null);
         return;
@@ -245,7 +263,7 @@ export const Planner: React.FC<PlannerProps> = ({ width, height }) => {
         return;
       }
       
-      if (state.mode === "add-surface") {
+      if (state.mode === "add-surface") { 
         setSurface((current) => ({
           ...current,
           points: unionSurfaces(current.points, currentSurface.points)[0],
@@ -360,6 +378,8 @@ export const Planner: React.FC<PlannerProps> = ({ width, height }) => {
     };
     reader.readAsText(file);
   };
+
+  const editable = state.editable && (currentSurface === null || currentSurface?.idle);
   
   return (
     <div className="relative">
@@ -440,7 +460,7 @@ export const Planner: React.FC<PlannerProps> = ({ width, height }) => {
             <Surface 
               id={surface.id} 
               points={surface.points} 
-              disabled={!state.editable} 
+              disabled={!editable} 
               pattern={surface.pattern}
               edit={state.mode === 'edit-surface'} 
               onClick={() => dispatch({ type: "edit-surface" })} 
@@ -454,7 +474,6 @@ export const Planner: React.FC<PlannerProps> = ({ width, height }) => {
               lineCap="round"
               lineJoin="round"
               dash={[4, 4]}
-              
               closed
             />
           )}
@@ -479,13 +498,13 @@ export const Planner: React.FC<PlannerProps> = ({ width, height }) => {
 
             return (
               <React.Fragment key={key}>
-                {state.editable && <EdgeEdit 
+                {editable && <EdgeEdit 
                   id={key}
                   wallIndex={i} 
                   pointA={pt} 
                   pointB={nxt} 
                   edit={state.mode === 'edit-wall' && i === state.wallIndex} 
-                  onClick={(p, idx) =>  dispatch({type: 'edit-wall', payload: { wallIndex: idx}})}
+                  onClick={(p, idx) => dispatch({type: 'edit-wall', payload: { wallIndex: idx}})}
                 />}
                 <WallDimension
                   pointA={pt}
@@ -503,7 +522,7 @@ export const Planner: React.FC<PlannerProps> = ({ width, height }) => {
               </React.Fragment>
             );
           })}
-          {state.editable && surface.points.map((pt, i) => {
+          {editable && surface.points.map((pt, i) => {
             return (
               <CornerEdit
                 key={i}

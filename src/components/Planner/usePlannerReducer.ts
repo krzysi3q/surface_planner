@@ -37,13 +37,13 @@ interface ReducerStateEditSurface {
   editable: true;
 }
 
-interface ReducerStateAddSurface {
+export interface ReducerStateAddSurface {
   mode: 'add-surface';
   wallIndex: null;
   editable: true;
 }
 
-interface ReducerStateSubtractSurface {
+export interface ReducerStateSubtractSurface {
   mode: 'subtract-surface';
   wallIndex: null;
   editable: true;
