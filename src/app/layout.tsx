@@ -13,11 +13,11 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Surface Planner",
+  title: "HandyLay - Surface Planner",
   description: "Create and design your perfect apartment floor or wall with interactive walls and tile layouts.",
-  applicationName: "Surface Planner",
+  applicationName: "HandyLay",
   other: {
-    "apple-mobile-web-app-title": "Surface Planner",
+    "apple-mobile-web-app-title": "HandyLay",
   }
 };
 
