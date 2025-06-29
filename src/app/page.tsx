@@ -1,6 +1,6 @@
-import Link from 'next/link';
 import Image from 'next/image';
 import { ScrollToButton } from "./components/ScrollToButton";
+import { SmartPlannerLink } from "@/components/SmartPlannerLink";
 
 export default function Home() {
   return (
@@ -24,12 +24,12 @@ export default function Home() {
           <p className="text-lg mb-10 text-slate-600 max-w-2xl mx-auto">
             Plan the perfect tile layout for your walls and floors! Avoid tiny pieces at edges and minimize cuts - making your DIY project look professional and save you money.
           </p>
-          <Link 
+          <SmartPlannerLink 
             href="/planner" 
             className="inline-block px-8 py-4 bg-orange-600 text-white font-bold text-lg rounded-lg shadow-lg hover:bg-orange-700 hover:shadow-xl transition-all duration-300 transform hover:scale-105"
           >
             Start Planning Now
-          </Link>
+          </SmartPlannerLink>
         </div>
         
         {/* Scroll Down Arrow */}
@@ -202,12 +202,12 @@ export default function Home() {
             Join thousands of DIY enthusiasts and professionals who are already creating beautiful, waste-free tile layouts with Handy Lay.
           </p>
           <div className="flex flex-col sm:flex-row gap-4 justify-center items-center">
-            <Link 
+            <SmartPlannerLink 
               href="/planner" 
               className="px-8 py-4 bg-orange-600 text-white font-bold text-lg rounded-lg shadow-lg hover:bg-orange-700 hover:shadow-xl transition-all duration-300 transform hover:scale-105"
             >
               Start Planning Now
-            </Link>
+            </SmartPlannerLink>
             {/* <button className="px-8 py-4 border-2 border-orange-600 text-orange-600 font-bold text-lg rounded-lg hover:bg-orange-600 hover:text-white transition-all duration-300">
               See Demo
             </button> */}

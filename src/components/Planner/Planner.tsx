@@ -409,13 +409,13 @@ export const Planner: React.FC<PlannerProps> = ({ width, height }) => {
           id="upload-surface"
         />
       </div>
-      <div className="absolute z-10 right-2 top-2 bg-gray-100 shadow-md p-1 space-x-2 rounded-lg flex items-center justify-center">
+      <div className="absolute z-10 top-16 left-1/2 -translate-x-1/2 md:left-auto md:translate-x-0 md:right-2 md:top-2 bg-gray-100 shadow-md p-1 space-x-2 rounded-lg flex items-center justify-center">
         <ToolbarButton onClick={() => setGlobalScale(c => c < 300 ? c + 10 : 300)} icon={<ZoomIn />} />
         <ToolbarButton onClick={() => setGlobalScale(100)} label={`${globalScale}%`} />
         <ToolbarButton onClick={() => setGlobalScale(c => c > 0 ? c - 10 : 0)} icon={<ZoomOut />} />
       </div>
       {state.mode === 'edit-corner' && (
-        <div className="absolute z-10 left-2 top-5 w-32 bg-gray-100 shadow-md p-1 space-x-2 rounded-lg">
+        <div className="absolute z-10 left-2 top-16 md:top-5 w-12 md:w-32 bg-gray-100 shadow-md p-1 space-x-2 rounded-lg">
           <ToolbarButton 
             disabled={isRightAngle([surface.points[state.prevWallIndex], surface.points[state.wallIndex], surface.points[state.nextWallIndex]])} 
             onClick={() => makeAngleRight(state.prevWallIndex, state.wallIndex, state.nextWallIndex)} 
@@ -425,12 +425,12 @@ export const Planner: React.FC<PlannerProps> = ({ width, height }) => {
         </div>
       )}
       {state.mode === 'edit-wall' && (
-        <div className="absolute z-10 left-2 top-5 w-32 bg-gray-100 shadow-md p-1 space-x-2 rounded-lg">
+        <div className="absolute z-10 left-2 top-16 md:top-5 w-12 md:w-32 bg-gray-100 shadow-md p-1 space-x-2 rounded-lg">
           <ToolbarButton variant="danger" disabled={true} onClick={() => removePoints([state.nextWallIndex])} wide icon={<Trash2 />} />
         </div>
       )}
       {state.mode === 'edit-surface' && (
-        <div className="absolute z-10 left-2 top-5 w-32 bg-gray-100 shadow-md p-1 space-x-2 rounded-lg">
+        <div className="absolute z-10 left-2 top-16 md:top-5 w-12 md:w-32 bg-gray-100 shadow-md p-1 space-x-2 rounded-lg">
           <ToolbarButton wide onClick={() => setSurfaceEditorOpen(true)} icon={<PencilRuler />} />
           <ToolbarButton variant="danger" onClick={removeSurface} wide icon={<Trash2 />} />
         </div>

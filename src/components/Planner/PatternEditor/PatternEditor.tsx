@@ -616,30 +616,13 @@ export const PatternEditor: React.FC<PatternEditorProps> = ({className, value, o
   }
 
   return (
-    <div className="bg-black/25 absolute top-0 left-0 w-full h-full z-20">
-      <div className={classMerge("bg-gray-100 shadow-md rounded-lg flex flex-col gap-4 p-4 w-full md:w-2xl mx-auto mt-20", className)}>
+    <div className="bg-black/25 absolute top-0 left-0 w-full h-full z-20 p-4">
+      <div className={classMerge("bg-gray-100 shadow-md rounded-lg flex flex-col flex-nowrap gap-4 p-4 w-full h-full relative", className)}>
         <div className="flex justify-between">
           <h1 className="text-2xl font-bold text-black">Pattern Editor</h1>
           <ToolbarButton onClick={onClose} icon={<X />} />
         </div>
-        <div>
-          <h2 className="text-lg font-bold text-black">Add tile</h2>
-          <div className="flex gap-2">
-            <ToolbarButton onClick={() => addTriangle()} icon={<Triangle />} />
-            <ToolbarButton onClick={() => addRectangleHorizontal()} icon={<RectangleHorizontal />} />
-            <ToolbarButton onClick={() => addRectangleVertical()} icon={<RectangleVertical />} />
-            <ToolbarButton onClick={() => addSquare()} icon={<Square />} />
-            <ToolbarButton onClick={() => addDiamond()} icon={<Diamond />} />
-            <ToolbarButton onClick={() => addHexagon()} icon={<Hexagon />} />
-            <div className="grow" />
-            {/* <div className="flex items-center gap-1">
-              <UnfoldHorizontal className="size-6 text-black"/>
-              <input type="range" min={0} max={20} step={1} value={pattern.tilesGap} onChange={e => setPattern(c=> ({...c, tilesGap: e.target.valueAsNumber}))} className="w-24 h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer" />
-              <output className="text-sm font-bold text-black w-8">{pattern.tilesGap}mm</output>
-            </div> */}
-          </div>
-        </div>
-        <div>
+        <div className="">
           <h2 className="text-lg font-bold text-black">Patterns:</h2>
           <div className="flex flex-wrap gap-2">
             {READY_TO_USE_PATTERNS.map((readyPattern, i) => (
@@ -653,23 +636,33 @@ export const PatternEditor: React.FC<PatternEditorProps> = ({className, value, o
               />))}
           </div>
         </div>
-        <div className="relative h-[500px]">
-          <ResizePlanner render={(dimensions) => <PatternCanvas 
-            ref={stageRef}
-            pattern={pattern}
-            height={dimensions.height}
-            width={dimensions.width}
-            isDragging={activeData !== null}
-            selectedId={edited}
-            onStageClick={onBackgroundClick}
-            onStageMouseMove={onMouseMove}
-            onStageMouseUp={onMouseUp}
-            onTileClick={onTileClick}
-            onTileDown={onTileDown}
-            onTileEnter={onTileEnter}
-            onTileLeave={onTileLeave}            
-          />
-          } />
+        <div className="relative grow flex flex-col">
+          <div className="absolute z-10 left-1/2 top-2 -translate-x-1/2 flex items-center bg-gray-100 shadow-md p-1 space-x-2 rounded-lg">
+            <ToolbarButton onClick={() => addTriangle()} icon={<Triangle />} />
+            <ToolbarButton onClick={() => addRectangleHorizontal()} icon={<RectangleHorizontal />} />
+            <ToolbarButton onClick={() => addRectangleVertical()} icon={<RectangleVertical />} />
+            <ToolbarButton onClick={() => addSquare()} icon={<Square />} />
+            <ToolbarButton onClick={() => addDiamond()} icon={<Diamond />} />
+            <ToolbarButton onClick={() => addHexagon()} icon={<Hexagon />} />
+          </div>
+          <div className="grow">
+            <ResizePlanner render={(dimensions) => <PatternCanvas 
+              ref={stageRef}
+              pattern={pattern}
+              height={dimensions.height}
+              width={dimensions.width}
+              isDragging={activeData !== null}
+              selectedId={edited}
+              onStageClick={onBackgroundClick}
+              onStageMouseMove={onMouseMove}
+              onStageMouseUp={onMouseUp}
+              onTileClick={onTileClick}
+              onTileDown={onTileDown}
+              onTileEnter={onTileEnter}
+              onTileLeave={onTileLeave}            
+            />
+            } />
+          </div>
           <div className="absolute bottom-3 left-1/2 -translate-x-1/2 flex gap-1 items-center justify-center px-4 bg-gray-100 shadow-md p-1 space-x-2 rounded-lg">
               <RulerDimensionLine className="text-black" />
               <input type="number" min={0} step={1} disabled={!pattern.tiles.length} className="w-20 h-8 text-black text-center border border-black rounded-md bg-gray-100" value={pattern.width * (pattern.scale * 10)} onChange={e => setPattern(c=> ({...c, width: e.target.valueAsNumber / (pattern.scale * 10)}))} />

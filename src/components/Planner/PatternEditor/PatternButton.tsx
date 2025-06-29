@@ -30,7 +30,7 @@ export const PatternButton: React.FC<PatternButtonProps> = ({
 
   return (
     <button
-      className="flex items-center justify-center p-1 border border-solid border-gray-300 rounded-lg hover:bg-gray-100 focus:outline-none focus:ring-2 focus:ring-blue-500"
+      className="flex items-center justify-center p-1 w-22 h-22 border border-solid border-gray-300 rounded-lg hover:bg-gray-100 focus:outline-none focus:ring-2 focus:ring-blue-500"
       onClick={() => onClick(pattern)}
     >
       {background && <div className="w-20 h-20 rounded-md bg-repeat bg-center" style={{ backgroundImage: `url(${background})`, backgroundSize: `${displayScale * 100}%` }} />}
