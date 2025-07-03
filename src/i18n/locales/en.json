@@ -1,0 +1,122 @@
+{
+  "app": {
+    "title": "HandyLay - Surface Planner",
+    "name": "Handy Lay",
+    "description": "Create and design your perfect apartment floor or wall with interactive walls and tile layouts.",
+    "tagline": "Your friendly tile and panel layout planner",
+    "icon": "App Icon"
+  },
+  "home": {
+    "hero": {
+      "title": "Handy Lay",
+      "subtitle": "Your friendly tile and panel layout planner",
+      "description": "Plan the perfect tile layout for your walls and floors! Avoid tiny pieces at edges and minimize cuts - making your DIY project look professional and save you money.",
+      "cta": "Start Planning Now",
+      "learnMore": "Learn more",
+      "scrollToFeatures": "Scroll to features section"
+    },
+    "features": {
+      "title": "Why Choose Handy Lay?",
+      "smartLayout": {
+        "title": "Smart Layout",
+        "description": "Get the best tile arrangement automatically - no more guessing! Our tool figures out the perfect layout to minimize waste and maximize beauty."
+      },
+      "visualPreview": {
+        "title": "Visual Preview",
+        "description": "See exactly how your tiles will look before you start cutting. No more surprises - just confidence in your project!"
+      },
+      "saveMoney": {
+        "title": "Save Money",
+        "description": "Reduce waste and buy just what you need. Our calculations help you avoid overbuying tiles and materials."
+      }
+    },
+    "howItWorks": {
+      "title": "How It Works",
+      "step1": {
+        "title": "Measure Your Space",
+        "description": "Enter the dimensions of your wall or floor"
+      },
+      "step2": {
+        "title": "Choose Your Tiles",
+        "description": "Input the size of your tiles or panels"
+      },
+      "step3": {
+        "title": "Get Your Plan",
+        "description": "We'll create the perfect layout for you"
+      },
+      "step4": {
+        "title": "Start Tiling!",
+        "description": "Follow the plan and enjoy the results"
+      }
+    },
+    "benefits": {
+      "title": "Perfect for DIY Enthusiasts",
+      "saveMoneyTitle": "Save Money",
+      "saveMoneyDesc": "Reduce material waste by up to 15% and avoid buying extra tiles \"just in case\"",
+      "lookProTitle": "Look Like a Pro",
+      "lookProDesc": "Get professional-looking results without the professional price tag",
+      "gainConfidenceTitle": "Gain Confidence",
+      "gainConfidenceDesc": "Start your project knowing exactly what to do and how much material you need",
+      "greatFor": "Great for:",
+      "targets": {
+        "firstTimers": "First-time tilers",
+        "weekendWarriors": "Weekend warriors",
+        "homeRenovation": "Home renovation projects",
+        "bathroomKitchen": "Bathroom & kitchen makeovers",
+        "professionals": "Professional contractors too!"
+      }
+    },
+    "cta": {
+      "title": "Ready to Get Started?",
+      "description": "Join thousands of DIY enthusiasts and professionals who are already creating beautiful, waste-free tile layouts with Handy Lay.",
+      "button": "Start Planning Now"
+    },
+    "footer": {
+      "copyright": "© 2025 Handy Lay. All rights reserved."
+    }
+  },
+  "touchDevice": {
+    "title": "Touch Devices Not Supported",
+    "description": "This Planner currently requires a desktop or laptop computer with a mouse for precise drawing and editing operations.",
+    "requirement": "Please use a desktop or laptop computer",
+    "futureSupport": "Touch device support is planned for future updates",
+    "shortDescription": "This Planner requires precise mouse interactions for drawing and editing. Please use a desktop or laptop computer for the best experience.",
+    "recommendation": "Desktop/laptop recommended",
+    "gotIt": "Got it"
+  },
+  "planner": {
+    "patternEditor": {
+      "title": "Pattern Editor",
+      "patterns": "Patterns:",
+      "dimensions": "mm",
+      "angle": "°",
+      "cancel": "Cancel",
+      "save": "Save"
+    },
+    "ui": {
+      "delete": "Delete",
+      "copy": "Copy",
+      "preview": "Preview",
+      "undo": "Undo",
+      "redo": "Redo",
+      "save": "Save",
+      "download": "Download",
+      "upload": "Upload",
+      "zoomIn": "Zoom In",
+      "zoomOut": "Zoom Out"
+    },
+    "measurements": {
+      "mm": "mm",
+      "m": "m",
+      "deg": "°"
+    }
+  },
+  "language": {
+    "english": "English",
+    "polish": "Polski",
+    "switchLanguage": "Switch Language",
+    "choosePreferred": "Choose your preferred language",
+    "changeSettingsLater": "You can change this later in the settings",
+    "moreOptions": "More language options"
+  }
+}

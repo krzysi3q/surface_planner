@@ -1,4 +1,5 @@
 import React, { useState } from "react";
+import { useTranslation } from '@/hooks/useTranslation';
 import { classMerge } from "@/utils/classMerge";
 
 import { ToolbarButton } from "../../ToolbarButton";
@@ -50,6 +51,7 @@ const getSquarePoints = (sideLength: number): Point[] => {
 }
 
 export const PatternEditor: React.FC<PatternEditorProps> = ({className, value, onClose, onSubmit}) => {
+  const { t } = useTranslation();
 
   const [pattern, setPattern] = useState<Pattern>(value || {
     tiles: [],
@@ -619,11 +621,11 @@ export const PatternEditor: React.FC<PatternEditorProps> = ({className, value, o
     <div className="bg-black/25 absolute top-0 left-0 w-full h-full z-20 p-4">
       <div className={classMerge("bg-gray-100 shadow-md rounded-lg flex flex-col flex-nowrap gap-4 p-4 w-full h-full relative", className)}>
         <div className="flex justify-between">
-          <h1 className="text-2xl font-bold text-black">Pattern Editor</h1>
+          <h1 className="text-2xl font-bold text-black">{t('planner.patternEditor.title')}</h1>
           <ToolbarButton onClick={onClose} icon={<X />} />
         </div>
         <div className="">
-          <h2 className="text-lg font-bold text-black">Patterns:</h2>
+          <h2 className="text-lg font-bold text-black">{t('planner.patternEditor.patterns')}</h2>
           <div className="flex flex-wrap gap-2">
             {READY_TO_USE_PATTERNS.map((readyPattern, i) => (
               <PatternButton 
@@ -668,7 +670,7 @@ export const PatternEditor: React.FC<PatternEditorProps> = ({className, value, o
               <input type="number" min={0} step={1} disabled={!pattern.tiles.length} className="w-20 h-8 text-black text-center border border-black rounded-md bg-gray-100" value={pattern.width * (pattern.scale * 10)} onChange={e => setPattern(c=> ({...c, width: e.target.valueAsNumber / (pattern.scale * 10)}))} />
               <span className="text-black">x</span>
               <input type="number" min={0} step={1} disabled={!pattern.tiles.length} className="w-20 h-8 text-black text-center border border-black rounded-md bg-gray-100" value={pattern.height * (pattern.scale * 10)} onChange={e => setPattern(c=> ({...c, height: e.target.valueAsNumber / (pattern.scale * 10)}))} />
-              <span className="text-black">mm</span>
+              <span className="text-black">{t('planner.measurements.mm')}</span>
               <ToolbarButton onClick={previewPattern} icon={<Eye/>}/>
           </div>
           {edited && (
@@ -686,8 +688,8 @@ export const PatternEditor: React.FC<PatternEditorProps> = ({className, value, o
           {rotateCursor && <RotateCcw className="fixed text-black -translate-1/2 pointer-events-none" ref={cursorRef}  />}
         </div>
         <div className="flex justify-end gap-3">
-          <ToolbarButton label="Cancel" onClick={onClose}/>
-          <ToolbarButton label="Save" icon={<CircleCheck className="text-green-800 size-5"/>} onClick={() => onSubmit?.(pattern)} className="border border-black"/>
+          <ToolbarButton label={t('planner.patternEditor.cancel')} onClick={onClose}/>
+          <ToolbarButton label={t('planner.patternEditor.save')} icon={<CircleCheck className="text-green-800 size-5"/>} onClick={() => onSubmit?.(pattern)} className="border border-black"/>
         </div>
       </div>
     </div>

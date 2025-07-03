@@ -1,9 +1,11 @@
 'use client';
 
-import React, { useState } from 'react';
 import Link from 'next/link';
-import { useTouchDevice } from '@/hooks/useTouchDevice';
+import React, { useState } from 'react';
+import { useTranslation } from '@/hooks/useTranslation';
+import { usePathname } from 'next/navigation';
 import { Smartphone, Monitor, X } from 'lucide-react';
+import { useTouchDevice } from '@/hooks/useTouchDevice';
 
 interface SmartPlannerLinkProps {
   href: string;
@@ -16,8 +18,20 @@ export const SmartPlannerLink: React.FC<SmartPlannerLinkProps> = ({
   children, 
   className = ''
 }) => {
+  const { t, i18n } = useTranslation();
+  const pathname = usePathname();
   const isTouchDevice = useTouchDevice();
   const [showWarning, setShowWarning] = useState(false);
+
+  // Get current language from pathname or use current i18n language
+  const getCurrentLanguage = () => {
+    const segments = pathname.split('/').filter(Boolean);
+    const firstSegment = segments[0];
+    return ['en', 'pl'].includes(firstSegment) ? firstSegment : i18n.language;
+  };
+
+  // Create localized href
+  const localizedHref = `/${getCurrentLanguage()}${href}`;
 
   const handleClick = (e: React.MouseEvent) => {
     if (isTouchDevice) {
@@ -28,7 +42,7 @@ export const SmartPlannerLink: React.FC<SmartPlannerLinkProps> = ({
 
   if (!isTouchDevice) {
     return (
-      <Link href={href} className={className}>
+      <Link href={localizedHref} className={className}>
         {children}
       </Link>
     );
@@ -67,23 +81,23 @@ export const SmartPlannerLink: React.FC<SmartPlannerLinkProps> = ({
               </div>
               
               <h3 className="text-xl font-bold text-gray-800 mb-3">
-                Touch Devices Not Supported
+                {t('touchDevice.title')}
               </h3>
               
               <p className="text-gray-600 mb-4 text-sm leading-relaxed">
-                This Planner requires precise mouse interactions for drawing and editing. Please use a desktop or laptop computer for the best experience.
+                {t('touchDevice.shortDescription')}
               </p>
               
               <div className="flex items-center justify-center gap-2 text-sm text-gray-500 mb-4">
                 <Monitor className="w-4 h-4" />
-                <span>Desktop/laptop recommended</span>
+                <span>{t('touchDevice.recommendation')}</span>
               </div>
               
               <button
                 onClick={() => setShowWarning(false)}
                 className="px-4 py-2 bg-orange-600 text-white rounded-lg hover:bg-orange-700 transition-colors text-sm"
               >
-                Got it
+                {t('touchDevice.gotIt')}
               </button>
             </div>
           </div>

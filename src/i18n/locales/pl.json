@@ -1,0 +1,122 @@
+{
+  "app": {
+    "title": "HandyLay - Planowanie Powierzchni",
+    "name": "Handy Lay",
+    "description": "Twórz i projektuj idealną podłogę lub ścianę swojego mieszkania z interaktywnymi ścianami i układami płytek.",
+    "tagline": "Twój przyjazny planer układu płytek i paneli",
+    "icon": "Ikona Aplikacji"
+  },
+  "home": {
+    "hero": {
+      "title": "Handy Lay",
+      "subtitle": "Twój przyjazny planer układu płytek i paneli",
+      "description": "Zaplanuj idealny układ płytek dla twoich ścian i podłóg! Unikaj małych kawałków na krawędziach i minimalizuj cięcia - sprawiając, że twój projekt DIY będzie wyglądał profesjonalnie i oszczędzisz pieniądze.",
+      "cta": "Rozpocznij Planowanie",
+      "learnMore": "Dowiedz się więcej",
+      "scrollToFeatures": "Przewiń do sekcji funkcji"
+    },
+    "features": {
+      "title": "Dlaczego wybrać Handy Lay?",
+      "smartLayout": {
+        "title": "Inteligentny Układ",
+        "description": "Uzyskaj najlepsze ułożenie płytek automatycznie - koniec z zgadywaniem! Nasze narzędzie ustala idealny układ, aby zminimalizować marnotrawstwo i zmaksymalizować piękno."
+      },
+      "visualPreview": {
+        "title": "Wizualny Podgląd",
+        "description": "Zobacz dokładnie, jak będą wyglądać twoje płytki przed rozpoczęciem cięcia. Żadnych niespodzianek - tylko pewność w twoim projekcie!"
+      },
+      "saveMoney": {
+        "title": "Oszczędzaj Pieniądze",
+        "description": "Zmniejsz marnotrawstwo i kup tylko to, czego potrzebujesz. Nasze obliczenia pomagają uniknąć kupowania zbyt wielu płytek i materiałów."
+      }
+    },
+    "howItWorks": {
+      "title": "Jak to działa",
+      "step1": {
+        "title": "Zmierz Swoją Przestrzeń",
+        "description": "Wprowadź wymiary swojej ściany lub podłogi"
+      },
+      "step2": {
+        "title": "Wybierz Swoje Płytki",
+        "description": "Wprowadź rozmiar swoich płytek lub paneli"
+      },
+      "step3": {
+        "title": "Otrzymaj Swój Plan",
+        "description": "Stworzymy dla ciebie idealny układ"
+      },
+      "step4": {
+        "title": "Rozpocznij Układanie!",
+        "description": "Postępuj zgodnie z planem i ciesz się rezultatami"
+      }
+    },
+    "benefits": {
+      "title": "Idealne dla Miłośników DIY",
+      "saveMoneyTitle": "Oszczędzaj Pieniądze",
+      "saveMoneyDesc": "Zmniejsz marnotrawstwo materiałów o nawet 15% i unikaj kupowania dodatkowych płytek \"na wszelki wypadek\"",
+      "lookProTitle": "Wyglądaj Jak Profesjonalista",
+      "lookProDesc": "Uzyskaj profesjonalnie wyglądające rezultaty bez profesjonalnej ceny",
+      "gainConfidenceTitle": "Zyskaj Pewność Siebie",
+      "gainConfidenceDesc": "Rozpocznij swój projekt wiedząc dokładnie, co robić i ile materiału potrzebujesz",
+      "greatFor": "Świetne dla:",
+      "targets": {
+        "firstTimers": "Początkujących płytkarzy",
+        "weekendWarriors": "Wojowników weekendowych",
+        "homeRenovation": "Projektów renowacji domu",
+        "bathroomKitchen": "Remontów łazienek i kuchni",
+        "professionals": "Profesjonalnych wykonawców też!"
+      }
+    },
+    "cta": {
+      "title": "Gotowy, żeby rozpocząć?",
+      "description": "Dołącz do tysięcy miłośników DIY i profesjonalistów, którzy już tworzą piękne, bezodpadowe układy płytek z Handy Lay.",
+      "button": "Rozpocznij Planowanie"
+    },
+    "footer": {
+      "copyright": "© 2025 Handy Lay. Wszelkie prawa zastrzeżone."
+    }
+  },
+  "touchDevice": {
+    "title": "Urządzenia Dotykowe Nie Są Obsługiwane",
+    "description": "Ten Planer obecnie wymaga komputera stacjonarnego lub laptopa z myszą do precyzyjnego rysowania i edytowania.",
+    "requirement": "Proszę użyć komputera stacjonarnego lub laptopa",
+    "futureSupport": "Obsługa urządzeń dotykowych jest planowana w przyszłych aktualizacjach",
+    "shortDescription": "Ten Planer wymaga precyzyjnych interakcji myszy do rysowania i edytowania. Proszę użyć komputera stacjonarnego lub laptopa dla najlepszego doświadczenia.",
+    "recommendation": "Komputer stacjonarny/laptop zalecany",
+    "gotIt": "Rozumiem"
+  },
+  "planner": {
+    "patternEditor": {
+      "title": "Edytor Wzorów",
+      "patterns": "Wzory:",
+      "dimensions": "mm",
+      "angle": "°",
+      "cancel": "Anuluj",
+      "save": "Zapisz"
+    },
+    "ui": {
+      "delete": "Usuń",
+      "copy": "Kopiuj",
+      "preview": "Podgląd",
+      "undo": "Cofnij",
+      "redo": "Ponów",
+      "save": "Zapisz",
+      "download": "Pobierz",
+      "upload": "Wczytaj",
+      "zoomIn": "Powiększ",
+      "zoomOut": "Pomniejsz"
+    },
+    "measurements": {
+      "mm": "mm",
+      "m": "m",
+      "deg": "°"
+    }
+  },
+  "language": {
+    "english": "English",
+    "polish": "Polski",
+    "switchLanguage": "Zmień Język",
+    "choosePreferred": "Wybierz preferowany język",
+    "changeSettingsLater": "Możesz to zmienić później w ustawieniach",
+    "moreOptions": "Więcej opcji językowych"
+  }
+}
