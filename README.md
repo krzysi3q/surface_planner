@@ -1,5 +1,27 @@
 This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
 
+## HandyLay - Surface Planner
+
+A multilingual floor and wall planner application with support for English and Polish.
+
+### Features
+- 🌐 **Multilingual Support**: English and Polish with URL-based language routing
+- 🎨 **Interactive Planning**: Visual tile and panel layout planning
+- 📱 **Responsive Design**: Optimized for desktop and laptop use
+- 🚀 **Modern Stack**: Next.js 15, TypeScript, Tailwind CSS, i18next
+
+### Internationalization
+
+This project is fully internationalized using i18next. All user-facing strings are translated into English and Polish.
+
+**For AI Assistants and Developers**: Please refer to [AI_I18N_GUIDELINES.md](./AI_I18N_GUIDELINES.md) for detailed instructions on maintaining translations when adding new features.
+
+#### Language Support
+- **English** (default): Accessible at `/en/` and as fallback
+- **Polish**: Accessible at `/pl/`
+- **Language Detection**: Automatic browser language detection with localStorage persistence
+- **Language Switching**: Available via dropdown and dedicated `/[lang]/language` page
+
 ## Getting Started
 
 First, run the development server:

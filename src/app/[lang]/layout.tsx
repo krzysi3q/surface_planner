@@ -14,11 +14,12 @@ const geistMono = Geist_Mono({
 });
 
 type Props = {
-  params: { lang: string };
+  params: Promise<{ lang: string }>;
   children: React.ReactNode;
 };
 
-export async function generateMetadata({ params }: { params: { lang: string } }): Promise<Metadata> {
+export async function generateMetadata({ params }: { params: Promise<{ lang: string }> }): Promise<Metadata> {
+  const { lang } = await params;
   const titles = {
     en: "HandyLay - Surface Planner",
     pl: "HandyLay - Planowanie Powierzchni"
@@ -30,8 +31,8 @@ export async function generateMetadata({ params }: { params: { lang: string } })
   };
 
   return {
-    title: titles[params.lang as keyof typeof titles] || titles.en,
-    description: descriptions[params.lang as keyof typeof descriptions] || descriptions.en,
+    title: titles[lang as keyof typeof titles] || titles.en,
+    description: descriptions[lang as keyof typeof descriptions] || descriptions.en,
     applicationName: "HandyLay",
     other: {
       "apple-mobile-web-app-title": "HandyLay",
@@ -39,11 +40,12 @@ export async function generateMetadata({ params }: { params: { lang: string } })
   };
 }
 
-export default function LocaleLayout({ children, params }: Props) {
+export default async function LocaleLayout({ children, params }: Props) {
+  const { lang } = await params;
   return (
-    <html lang={params.lang}>
+    <html lang={lang}>
       <body className={`${geistSans.variable} ${geistMono.variable} antialiased`}>
-        <I18nProvider initialLanguage={params.lang}>
+        <I18nProvider initialLanguage={lang}>
           {children}
         </I18nProvider>
       </body>
