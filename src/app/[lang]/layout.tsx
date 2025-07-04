@@ -44,6 +44,11 @@ export default async function LocaleLayout({ children, params }: Props) {
   const { lang } = await params;
   return (
     <html lang={lang}>
+      <head>
+        {/* Cloudflare Web Analytics */}
+        <script defer src='https://static.cloudflareinsights.com/beacon.min.js' data-cf-beacon='{"token": "ccf773cb97ec4c48a9729b3105430263"}'></script>
+        {/* End Cloudflare Web Analytics */}
+      </head>
       <body className={`${geistSans.variable} ${geistMono.variable} antialiased`}>
         <I18nProvider initialLanguage={lang}>
           {children}
