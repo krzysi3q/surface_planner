@@ -363,13 +363,20 @@ export const moveTo = (points: Point[], x: number, y: number): Point[] => {
   return points.map(point => [point[0] - minX + x, point[1] - minY + y]);
 }
 
-export const drawPattern = (pattern: Pattern) => {
+type DrawPatternOptions = {
+  alpha?: number; // Optional alpha for the pattern
+  backgroundColor?: string; // Optional background color
+}
+
+export const drawPattern = (pattern: Pattern, options: DrawPatternOptions = {}) => {
+  const { alpha = 1, backgroundColor } = options;
   const canvas = document.createElement('canvas');
   const ctx = canvas.getContext('2d');
   if (!ctx) return;
   canvas.width = pattern.width;
   canvas.height = pattern.height;
-  ctx.fillStyle = pattern.gapColor;
+  ctx.globalAlpha = alpha;
+  ctx.fillStyle = backgroundColor || pattern.gapColor;
   ctx.fillRect(0, 0, canvas.width, canvas.height);
   ctx.strokeStyle = pattern.gapColor;
   pattern.tiles.forEach(tile => {

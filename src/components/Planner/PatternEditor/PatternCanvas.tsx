@@ -5,14 +5,13 @@ import Konva from "konva";
 import { Tile, TileEventData } from "./Tile";
 import { Pattern } from "../types";
 
-import { createPatternCanvas } from "../utils";
-
-const patternCanvas = createPatternCanvas();
+import { createPatternCanvas, drawPattern } from "../utils";
 
 interface PatternCanvasProps {
   width: number;
   height: number;
   pattern: Pattern;
+  preview?: boolean;
   selectedId?: string | null;
   isDragging?: boolean;
   onStageClick?: (evt: Konva.KonvaEventObject<MouseEvent>) => void;
@@ -26,8 +25,31 @@ interface PatternCanvasProps {
 
 type StageNodeRef = Required<React.ComponentProps<typeof Stage>>['ref'];
 
-const PatternCanvasComponent = ({ width, height, pattern, selectedId, isDragging, ...events }: PatternCanvasProps, ref: StageNodeRef) => {
+const PatternCanvasComponent = ({ width, height, pattern, selectedId, isDragging, preview, ...events }: PatternCanvasProps, ref: StageNodeRef) => {
   const { onStageClick, onStageMouseMove, onStageMouseUp, onTileClick, onTileDown, onTileEnter, onTileLeave } = events;
+  const [background, setBackground] = React.useState<HTMLImageElement | undefined>(() => {
+    return createPatternCanvas();
+  });
+
+  React.useEffect(() => {
+    if (!pattern || !preview) {
+      setBackground(createPatternCanvas());
+      return;
+    }
+
+    const patternCanvas = drawPattern(pattern, { alpha: 0.5, backgroundColor: "transparent" });
+    const dataUrl = patternCanvas?.toDataURL("image/webp", 1);
+    if (dataUrl) {
+      const img = new Image();
+      img.onload = () => {
+        setBackground(img);
+      }
+      img.src = dataUrl;
+    }
+  }, [pattern, preview]);
+
+
+
   return (
   <Stage 
     ref={ref}
@@ -42,10 +64,13 @@ const PatternCanvasComponent = ({ width, height, pattern, selectedId, isDragging
         listening={false}
         width={width}
         height={height} 
-        fillPatternImage={patternCanvas}
+        fillPatternImage={background}
         fillPatternRepeat="repeat"
-        fillPatternRotation={Math.PI / 4}
-        fillRule="evenodd" /> 
+        fillPatternY={height/2 - pattern.height/2}
+        fillPatternX={width/2 - pattern.width/2}
+        // fillPatternRotation={Math.PI / 4}
+        // fillRule="evenodd"
+         /> 
         <Group x={width/2 - pattern.width/2} y={height/2 - pattern.height/2}>
           <Rect 
             x={0} y={0}

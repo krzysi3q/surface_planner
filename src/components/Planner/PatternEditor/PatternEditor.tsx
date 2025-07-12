@@ -3,10 +3,10 @@ import { useTranslation } from '@/hooks/useTranslation';
 import { classMerge } from "@/utils/classMerge";
 
 import { ToolbarButton } from "../../ToolbarButton";
-import { CircleCheck, Copy, Diamond, Eye, Hexagon, RectangleHorizontal, RectangleVertical, RotateCcw, RulerDimensionLine, Square, Trash2, Triangle, X } from "lucide-react";
+import { CircleCheck, Copy, Diamond, Eye, EyeOff, Hexagon, RectangleHorizontal, RectangleVertical, RotateCcw, RulerDimensionLine, Square, Trash2, Triangle, X } from "lucide-react";
 
 import { Pattern, Point, TileType } from "../types"
-import { getBoundingBox, rotateShape, moveTo, getAngles, getCircumscribedCircle, drawPattern } from "../utils"
+import { getBoundingBox, rotateShape, moveTo, getAngles, getCircumscribedCircle } from "../utils"
 import { setNoneCursor, setMoveCursor, setEwResizeCursor, setNsResizeCursor, removeCustomCursor } from "../domUtils"
 
 
@@ -604,18 +604,7 @@ export const PatternEditor: React.FC<PatternEditorProps> = ({className, value, o
     }
   }
 
-  const stageRef = React.useRef<Konva.Stage>(null);
-  const previewPattern = () => {
-   
-    const patternCanvas = drawPattern(pattern);
-    if (!patternCanvas) return;
-    const dataUrl = patternCanvas.toDataURL();
-    const win = window.open("", "Title", "toolbar=no,location=no,directories=no,status=no,menubar=no,scrollbars=yes,resizable=yes,width=500,height=500,top="+(screen.height-400)+",left="+(screen.width-840));
-    if (win) {
-      win.document.body.innerHTML = `<div style="width: 100%; height: 100%; background: url(${dataUrl});"></div`;
-    }
-  
-  }
+  const [preview, setPreview] = useState<boolean>(() => pattern.tiles.length > 0);
 
   return (
     <div className="bg-black/25 absolute top-0 left-0 w-full h-full z-20 p-4">
@@ -649,7 +638,7 @@ export const PatternEditor: React.FC<PatternEditorProps> = ({className, value, o
           </div>
           <div className="grow">
             <ResizePlanner render={(dimensions) => <PatternCanvas 
-              ref={stageRef}
+              preview={preview}
               pattern={pattern}
               height={dimensions.height}
               width={dimensions.width}
@@ -671,7 +660,7 @@ export const PatternEditor: React.FC<PatternEditorProps> = ({className, value, o
               <span className="text-black">x</span>
               <input type="number" min={0} step={1} disabled={!pattern.tiles.length} className="w-20 h-8 text-black text-center border border-black rounded-md bg-gray-100" value={pattern.height * (pattern.scale * 10)} onChange={e => setPattern(c=> ({...c, height: e.target.valueAsNumber / (pattern.scale * 10)}))} />
               <span className="text-black">{t('planner.measurements.mm')}</span>
-              <ToolbarButton onClick={previewPattern} icon={<Eye/>}/>
+              <ToolbarButton onClick={() => setPreview(c => !c)} icon={preview ? <EyeOff /> : <Eye/>}/>
           </div>
           {edited && (
             <div className="absolute z-10 left-2 top-5 w-12 bg-gray-100 shadow-md p-1 rounded-lg flex flex-col gap-1 items-center justify-center">
