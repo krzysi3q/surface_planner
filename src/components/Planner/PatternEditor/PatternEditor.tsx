@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useMemo, useState } from "react";
 import { useTranslation } from '@/hooks/useTranslation';
 import { classMerge } from "@/utils/classMerge";
 
@@ -17,6 +17,7 @@ import { ResizePlanner } from "../ResizePlanner";
 import { PatternButton } from "./PatternButton";
 
 import readyPatternsJson from "./ready_patterns.json"
+import { CursorArrows } from "@/components/CursorArrows";
 
 type ReadyPattern = {
   displayScale: number;
@@ -603,6 +604,58 @@ export const PatternEditor: React.FC<PatternEditorProps> = ({className, value, o
       }
     }
   }
+  const {moveTileDown, moveTileLeft, moveTileRight, moveTileUp} = useMemo(() => {
+    const moveTile = (direction: 'up' | 'down' | 'left' | 'right') => {
+      if (edited) {
+        setPattern(prev => {
+          const tile = prev.tiles.find(t => t.id === edited);
+          if (!tile) return prev;
+          const moveAmount = 1; // px
+          let dx = 0;
+          let dy = 0;
+          switch (direction) {
+            case 'up':
+              dy = -moveAmount;
+              break;
+            case 'down':
+              dy = moveAmount;
+              break;
+            case 'left':
+              dx = -moveAmount;
+              break;
+            case 'right':
+              dx = moveAmount;
+              break;
+          }
+          const newPoints = tile.points.map<Point>(point => [
+            point[0] + dx,
+            point[1] + dy
+          ]);
+          const newTile = {
+            ...tile,
+            points: newPoints,
+            metadata: {
+              ...tile.metadata,
+              centerX: tile.metadata.centerX + dx,
+              centerY: tile.metadata.centerY + dy
+            }
+          };
+          return {
+            ...prev,
+            tiles: prev.tiles.map(t => t.id === tile.id ? newTile : t)
+          };
+        });
+      }
+    }
+
+    return {
+      moveTileUp: () => moveTile('up'),
+      moveTileDown: () => moveTile('down'),
+      moveTileLeft: () => moveTile('left'),
+      moveTileRight: () => moveTile('right'),
+    }
+  }, [edited])
+  
 
   const [preview, setPreview] = useState<boolean>(() => pattern.tiles.length > 0);
 
@@ -663,7 +716,7 @@ export const PatternEditor: React.FC<PatternEditorProps> = ({className, value, o
               <ToolbarButton onClick={() => setPreview(c => !c)} icon={preview ? <EyeOff /> : <Eye/>}/>
           </div>
           {edited && (
-            <div className="absolute z-10 left-2 top-5 w-12 bg-gray-100 shadow-md p-1 rounded-lg flex flex-col gap-1 items-center justify-center">
+            <div className="absolute z-10 left-2 top-5 bg-gray-100 shadow-md p-1 rounded-lg flex flex-col gap-1 items-center justify-center">
               <input 
                 type="color" 
                 value={pattern.tiles.find(t => t.id === edited)?.color} 
@@ -671,6 +724,12 @@ export const PatternEditor: React.FC<PatternEditorProps> = ({className, value, o
                 className="w-full h-9 m-0 p-0 rounded-md border border-solid border-black cursor-pointer hover:text-red-800 hover:bg-gray-200" 
               />
               <ToolbarButton onClick={duplicateTile} icon={<Copy />} />
+              <CursorArrows 
+                onDown={moveTileDown}
+                onLeft={moveTileLeft}
+                onRight={moveTileRight}
+                onUp={moveTileUp}
+              />
               <ToolbarButton variant="danger" onClick={removeTile} icon={<Trash2 />} />
             </div>
           )}

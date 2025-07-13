@@ -3,6 +3,10 @@ import React from "react";
 
 interface ToolbarButtonProps {
   onClick?: () => void;
+  onMouseDown?: (e: React.MouseEvent<HTMLButtonElement>) => void;
+  onMouseUp?: (e: React.MouseEvent<HTMLButtonElement>) => void;
+  onTouchStart?: (e: React.TouchEvent<HTMLButtonElement>) => void;
+  onTouchEnd?: (e: React.TouchEvent<HTMLButtonElement>) => void;
   variant?: "default" | "danger"
   label?: string;
   icon?: React.ReactNode;
@@ -26,7 +30,7 @@ const getVariantStyles = (variant: ToolbarButtonProps['variant']) => {
 }
 
 export const ToolbarButton: React.FC<ToolbarButtonProps> = (props) => {
-  const { onClick, label, icon, disabled, variant = "default", active, wide, className, style, iconRight } = props;
+  const { onClick, label, icon, disabled, variant = "default", active, wide, className, style, iconRight, onMouseDown, onMouseUp, onTouchStart, onTouchEnd } = props;
 
   return (    
       <button className={classMerge(
@@ -38,6 +42,10 @@ export const ToolbarButton: React.FC<ToolbarButtonProps> = (props) => {
         wide ? "w-full" : "",
         className
       )}
+      onMouseDown={onMouseDown}
+      onMouseUp={onMouseUp}
+      onTouchStart={onTouchStart}
+      onTouchEnd={onTouchEnd}
       style={style}
       disabled={disabled}
       onClick={onClick}>{!iconRight && icon}{label && <span>{label}</span>}{iconRight && icon}</button>
