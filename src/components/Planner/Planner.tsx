@@ -20,6 +20,7 @@ import { classMerge } from "@/utils/classMerge";
 import { Surface } from "./Surface";
 import { PatternEditor } from "./PatternEditor/PatternEditor";
 import { ResizePlanner } from "./ResizePlanner";
+import { CursorArrows } from "../CursorArrows";
 
 type TemporarySurface = SurfaceType & {
   state: "error" | "valid";
@@ -348,6 +349,39 @@ export const Planner: React.FC<PlannerProps> = ({ width, height }) => {
     })); 
   }
 
+  const { movePatternDown, movePatternLeft, movePatternRight, movePatternUp} = useMemo(() => {
+    const movePattern = (direction: 'up' | 'down' | 'left' | 'right') => {
+      setSurface((current) => {
+        const newPattern = { ...current.pattern };
+        const moveAmount = 1; // pixels to move
+        switch (direction) {
+          case 'up':
+            newPattern.y -= moveAmount;
+            break;
+          case 'down':
+            newPattern.y += moveAmount;
+            break;
+          case 'left':
+            newPattern.x -= moveAmount;
+            break;
+          case 'right':
+            newPattern.x += moveAmount;
+            break;
+        }
+        return {
+          ...current,
+          pattern: newPattern,
+        };
+      });
+    }
+    return {
+      movePatternUp: () => movePattern('up'),
+      movePatternDown: () => movePattern('down'),
+      movePatternLeft: () => movePattern('left'),
+      movePatternRight: () => movePattern('right'),
+    }
+  }, [setSurface])
+
   const downloadSurface = () => {
     const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(surface));
     const downloadAnchorNode = document.createElement("a");
@@ -409,13 +443,13 @@ export const Planner: React.FC<PlannerProps> = ({ width, height }) => {
           id="upload-surface"
         />
       </div>
-      <div className="absolute z-10 top-16 left-1/2 -translate-x-1/2 md:left-auto md:translate-x-0 md:right-2 md:top-2 bg-gray-100 shadow-md p-1 space-x-2 rounded-lg flex items-center justify-center">
+      <div className="absolute z-10 top-16 left-1/2 -translate-x-1/2 md:left-auto md:translate-x-0 md:right-2 md:top-2 bg-gray-100 shadow-md p-1 rounded-lg flex items-center justify-center">
         <ToolbarButton onClick={() => setGlobalScale(c => c < 300 ? c + 10 : 300)} icon={<ZoomIn />} />
         <ToolbarButton onClick={() => setGlobalScale(100)} label={`${globalScale}%`} />
         <ToolbarButton onClick={() => setGlobalScale(c => c > 0 ? c - 10 : 0)} icon={<ZoomOut />} />
       </div>
       {state.mode === 'edit-corner' && (
-        <div className="absolute z-10 left-2 top-16 md:top-5 w-12 md:w-32 bg-gray-100 shadow-md p-1 space-x-2 rounded-lg">
+        <div className="absolute z-10 left-2 top-16 md:top-5 w-12 md:w-32 bg-gray-100 shadow-md p-1 rounded-lg">
           <ToolbarButton 
             disabled={isRightAngle([surface.points[state.prevWallIndex], surface.points[state.wallIndex], surface.points[state.nextWallIndex]])} 
             onClick={() => makeAngleRight(state.prevWallIndex, state.wallIndex, state.nextWallIndex)} 
@@ -425,15 +459,35 @@ export const Planner: React.FC<PlannerProps> = ({ width, height }) => {
         </div>
       )}
       {state.mode === 'edit-wall' && (
-        <div className="absolute z-10 left-2 top-16 md:top-5 w-12 md:w-32 bg-gray-100 shadow-md p-1 space-x-2 rounded-lg">
+        <div className="absolute z-10 left-2 top-16 md:top-5 w-12 md:w-32 bg-gray-100 shadow-md p-1 rounded-lg">
           <ToolbarButton variant="danger" disabled={true} onClick={() => removePoints([state.nextWallIndex])} wide icon={<Trash2 />} />
         </div>
       )}
       {state.mode === 'edit-surface' && (
-        <div className="absolute z-10 left-2 top-16 md:top-5 w-12 md:w-32 bg-gray-100 shadow-md p-1 space-x-2 rounded-lg">
-          <ToolbarButton wide onClick={() => setSurfaceEditorOpen(true)} icon={<PencilRuler />} />
-          <ToolbarButton variant="danger" onClick={removeSurface} wide icon={<Trash2 />} />
-        </div>
+        <>
+          <div className="absolute z-10 left-2 top-16 md:top-5 w-12 md:w-32 bg-gray-100 shadow-md p-1 rounded-lg">
+            <ToolbarButton wide onClick={() => setSurfaceEditorOpen(true)} icon={<PencilRuler />} />
+            <CursorArrows 
+              onDown={movePatternDown}
+              onLeft={movePatternLeft}
+              onRight={movePatternRight}
+              onUp={movePatternUp}
+              disabled={surface.pattern.tiles.length === 0 || surfaceEditorOpen}
+              variant="wide"
+              className="md:flex hidden"
+            />
+            <ToolbarButton variant="danger" onClick={removeSurface} wide icon={<Trash2 />} />
+          </div>
+          <CursorArrows 
+              onDown={movePatternDown}
+              onLeft={movePatternLeft}
+              onRight={movePatternRight}
+              onUp={movePatternUp}
+              disabled={surface.pattern.tiles.length === 0 || surfaceEditorOpen}
+              variant="wide"
+              className="md:hidden flex absolute z-10 bottom-2 right-2"
+            />
+        </>
       )}
       <Stage
         width={width}

@@ -1,6 +1,9 @@
 import React from "react";
 
 import { ArrowButton } from "./ArrowButton";
+import { ToolbarButton } from "../ToolbarButton";
+import { Circle } from "lucide-react";
+import { classMerge } from "@/utils/classMerge";
 
 export interface CursorArrowsProps {
   onUp: () => void;
@@ -8,6 +11,8 @@ export interface CursorArrowsProps {
   onLeft: () => void;
   onRight: () => void;
   disabled?: boolean;
+  variant?: 'wide' | 'default';
+  className?: string;
 }
 
 export const CursorArrowsComponent: React.FC<CursorArrowsProps> = ({
@@ -16,9 +21,11 @@ export const CursorArrowsComponent: React.FC<CursorArrowsProps> = ({
   onLeft,
   onRight,
   disabled = false,
+  variant = 'default',
+  className,
 }) => {
   return (
-    <div className="flex flex-col items-center gap-2">
+    <div className={classMerge("flex flex-col items-center gap-2", className)}>
       <ArrowButton
         direction="up"
         onClick={onUp}
@@ -32,6 +39,7 @@ export const CursorArrowsComponent: React.FC<CursorArrowsProps> = ({
           disabled={disabled}
           className="cursor-pointer"
         />
+        {variant === 'wide' && (<ToolbarButton className="pointer-events-none" icon={<Circle />} disabled/>)}
         <ArrowButton
           direction="right"
           onClick={onRight}
