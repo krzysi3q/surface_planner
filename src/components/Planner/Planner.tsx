@@ -7,6 +7,7 @@ import { RightAngle } from "@/components/Icons/RightAngle";
 import Konva from "konva";
 
 import { useHistoryState } from "@/hooks/useHistoryState";
+import { useTranslation } from "@/hooks/useTranslation";
 import { subtractSurfaces, unionSurfaces, isSurfaceIntersecting, saveToLocalStorage, loadFromLocalStorage, getAngles, getSurfaceArea, doSurfacesIntersect } from "./utils";
 import { removeCustomCursor, setGrabbingCursor } from "./domUtils"
 import EdgeEdit from "./EdgeEdit";
@@ -21,6 +22,7 @@ import { Surface } from "./Surface";
 import { PatternEditor } from "./PatternEditor/PatternEditor";
 import { ResizePlanner } from "./ResizePlanner";
 import { CursorArrows } from "../CursorArrows";
+import { Tooltip } from "../Tooltip";
 
 type TemporarySurface = SurfaceType & {
   state: "error" | "valid";
@@ -106,6 +108,7 @@ const useDragStage = (setSurface: ReturnType<typeof useHistoryState<{id: string,
 
 
 export const Planner: React.FC<PlannerProps> = ({ width, height }) => {
+  const { t } = useTranslation();
   const { state: surface, set: setSurface, undo, redo, persist, canUndo, canRedo } = useHistoryState<{id: string, points: Point[], pattern: Pattern}>(loadFromLocalStorage('surface') || { id: self.crypto.randomUUID(), points: [], pattern: defaultPattern });
   const [ surfaceEditorOpen, setSurfaceEditorOpen ] = React.useState<boolean>(false);
   const { state, dispatch } = usePlannerReducer(surface.points);
@@ -419,16 +422,61 @@ export const Planner: React.FC<PlannerProps> = ({ width, height }) => {
     <div className="relative">
       {surfaceEditorOpen && (<PatternEditor className="" onClose={() => setSurfaceEditorOpen(false)} onSubmit={handleSurfaceEditorSubmit} value={surface.pattern} />)}
       <div className="absolute z-10 left-1/2 top-2 -translate-x-1/2 flex items-center bg-gray-100 shadow-md p-1 space-x-2 rounded-lg">
-        <ToolbarButton onClick={() => dispatch({type: 'default'})} active={['default', 'edit-wall', 'edit-corner', 'edit-surface'].includes(state.mode)} icon={<SplinePointer />} />
-        <ToolbarButton onClick={() => dispatch({type: 'preview'})} active={state.mode === 'preview'} icon={<Hand />} />
-        <ToolbarButton onClick={() => dispatch({type: 'add-surface'})} active={state.mode === 'add-surface'} icon={<SquaresUnite />} />
-        <ToolbarButton onClick={() => dispatch({type: 'subtract-surface'})} active={state.mode === 'subtract-surface'} icon={<SquaresSubtract />} />
-        <ToolbarButton onClick={undo} disabled={!canUndo} icon={<Undo />} />
-        <ToolbarButton onClick={redo} disabled={!canRedo} icon={<Redo />} />
+        <Tooltip 
+          text={t('planner.ui.editMode')}
+          position="bottom"
+          component={ref => 
+            <ToolbarButton ref={ref} onClick={() => dispatch({type: 'default'})} active={['default', 'edit-wall', 'edit-corner', 'edit-surface'].includes(state.mode)} icon={<SplinePointer />} />
+          } />
+        <Tooltip 
+          text={t('planner.ui.previewMode')}
+          position="bottom"
+          component={ref => 
+            <ToolbarButton ref={ref} onClick={() => dispatch({type: 'preview'})} active={state.mode === 'preview'} icon={<Hand />} />
+          } />
+        <Tooltip 
+          text={t('planner.ui.addSurface')}
+          position="bottom"
+          component={ref => 
+            <ToolbarButton ref={ref} onClick={() => dispatch({type: 'add-surface'})} active={state.mode === 'add-surface'} icon={<SquaresUnite />} />
+          } />
+        <Tooltip 
+          text={t('planner.ui.subtractSurface')}
+          position="bottom"
+          component={ref => 
+            <ToolbarButton ref={ref} onClick={() => dispatch({type: 'subtract-surface'})} active={state.mode === 'subtract-surface'} icon={<SquaresSubtract />} />
+          } />
+        <Tooltip 
+          text={t('planner.ui.undo')}
+          position="bottom"
+          component={ref => 
+            <ToolbarButton ref={ref} onClick={undo} disabled={!canUndo} icon={<Undo />} />
+          } />
+        <Tooltip 
+          text={t('planner.ui.redo')}
+          position="bottom"
+          component={ref => 
+            <ToolbarButton ref={ref} onClick={redo} disabled={!canRedo} icon={<Redo />} />
+          } />
         <div className="h-6 w-0 border-l border-solid border-l-black" />
-        <ToolbarButton onClick={() => saveToLocalStorage('surface', surface)} icon={<Save />} />
-        <ToolbarButton onClick={() => downloadSurface()} icon={<Download />} />
-        <ToolbarButton onClick={() => {document.getElementById('upload-surface')?.click()}} icon={<Upload />} />
+        <Tooltip 
+          text={t('planner.ui.saveToBrowser')}
+          position="bottom"
+          component={ref => 
+            <ToolbarButton ref={ref} onClick={() => saveToLocalStorage('surface', surface)} icon={<Save />} />
+          } />
+        <Tooltip 
+          text={t('planner.ui.downloadAsFile')}
+          position="bottom"
+          component={ref => 
+            <ToolbarButton ref={ref} onClick={() => downloadSurface()} icon={<Download />} />
+          } />
+        <Tooltip 
+          text={t('planner.ui.uploadFile')}
+          position="bottom"
+          component={ref => 
+            <ToolbarButton ref={ref} onClick={() => {document.getElementById('upload-surface')?.click()}} icon={<Upload />} />
+          } />
         <input
           type="file"
           accept=".json"
@@ -444,29 +492,61 @@ export const Planner: React.FC<PlannerProps> = ({ width, height }) => {
         />
       </div>
       <div className="absolute z-10 top-16 left-1/2 -translate-x-1/2 md:left-auto md:translate-x-0 md:right-2 md:top-2 bg-gray-100 shadow-md p-1 rounded-lg flex items-center justify-center">
-        <ToolbarButton onClick={() => setGlobalScale(c => c < 300 ? c + 10 : 300)} icon={<ZoomIn />} />
+        <Tooltip 
+          text={t('planner.ui.zoomIn')}
+          position="bottom"
+          component={ref => 
+            <ToolbarButton ref={ref} onClick={() => setGlobalScale(c => c < 300 ? c + 10 : 300)} icon={<ZoomIn />} />
+          } />
         <ToolbarButton onClick={() => setGlobalScale(100)} label={`${globalScale}%`} />
-        <ToolbarButton onClick={() => setGlobalScale(c => c > 0 ? c - 10 : 0)} icon={<ZoomOut />} />
+        <Tooltip 
+          text={t('planner.ui.zoomOut')}
+          position="bottom"
+          component={ref => 
+            <ToolbarButton ref={ref} onClick={() => setGlobalScale(c => c > 0 ? c - 10 : 0)} icon={<ZoomOut />} />
+          } />
       </div>
       {state.mode === 'edit-corner' && (
         <div className="absolute z-10 left-2 top-16 md:top-5 w-12 md:w-32 bg-gray-100 shadow-md p-1 rounded-lg">
-          <ToolbarButton 
-            disabled={isRightAngle([surface.points[state.prevWallIndex], surface.points[state.wallIndex], surface.points[state.nextWallIndex]])} 
-            onClick={() => makeAngleRight(state.prevWallIndex, state.wallIndex, state.nextWallIndex)} 
-            wide
-            icon={<RightAngle />} />
-          <ToolbarButton variant="danger" disabled={deletionDisabled} onClick={() => removePoints([state.wallIndex])} wide icon={<Trash2 />} />
+          <Tooltip 
+            text={t('planner.ui.makeRightAngle')}
+            position="right"
+            component={ref => 
+              <ToolbarButton 
+                ref={ref}
+                disabled={isRightAngle([surface.points[state.prevWallIndex], surface.points[state.wallIndex], surface.points[state.nextWallIndex]])} 
+                onClick={() => makeAngleRight(state.prevWallIndex, state.wallIndex, state.nextWallIndex)} 
+                wide
+                icon={<RightAngle />} />
+            } />
+          <Tooltip 
+            text={t('planner.ui.deleteCorner')}
+            position="right"
+            component={ref => 
+              <ToolbarButton ref={ref} variant="danger" disabled={deletionDisabled} onClick={() => removePoints([state.wallIndex])} wide icon={<Trash2 />} />
+            } />
         </div>
       )}
       {state.mode === 'edit-wall' && (
         <div className="absolute z-10 left-2 top-16 md:top-5 w-12 md:w-32 bg-gray-100 shadow-md p-1 rounded-lg">
-          <ToolbarButton variant="danger" disabled={true} onClick={() => removePoints([state.nextWallIndex])} wide icon={<Trash2 />} />
+          <Tooltip 
+            text={t('planner.ui.deleteWall')}
+            position="right"
+            component={ref => 
+              <ToolbarButton ref={ref} variant="danger" disabled={true} onClick={() => removePoints([state.nextWallIndex])} wide icon={<Trash2 />} />
+            } />
         </div>
       )}
       {state.mode === 'edit-surface' && (
         <>
           <div className="absolute z-10 left-2 top-16 md:top-5 w-12 md:w-32 bg-gray-100 shadow-md p-1 rounded-lg">
-            <ToolbarButton wide onClick={() => setSurfaceEditorOpen(true)} icon={<PencilRuler />} />
+            <Tooltip 
+              text={t('planner.ui.editPattern')}
+              position="right"
+              component={ref => 
+              <ToolbarButton ref={ref} wide onClick={() => setSurfaceEditorOpen(true)} icon={<PencilRuler />} />
+            } />
+            
             <CursorArrows 
               onDown={movePatternDown}
               onLeft={movePatternLeft}
@@ -476,7 +556,12 @@ export const Planner: React.FC<PlannerProps> = ({ width, height }) => {
               variant="wide"
               className="md:flex hidden"
             />
-            <ToolbarButton variant="danger" onClick={removeSurface} wide icon={<Trash2 />} />
+            <Tooltip 
+              text={t('planner.ui.deleteSurface')}
+              position="right"
+              component={ref => 
+                <ToolbarButton ref={ref} variant="danger" onClick={removeSurface} wide icon={<Trash2 />} />
+              } />
           </div>
           <CursorArrows 
               onDown={movePatternDown}

@@ -91,7 +91,17 @@
       "dimensions": "mm",
       "angle": "°",
       "cancel": "Anuluj",
-      "save": "Zapisz"
+      "save": "Zapisz",
+      "addTriangle": "Dodaj trójkąt",
+      "addRectangleHorizontal": "Dodaj prostokąt poziomy",
+      "addRectangleVertical": "Dodaj prostokąt pionowy",
+      "addSquare": "Dodaj kwadrat",
+      "addDiamond": "Dodaj romb",
+      "addHexagon": "Dodaj sześciokąt",
+      "togglePreview": "Przełącz podgląd",
+      "duplicateTile": "Duplikuj kafelek",
+      "deleteTile": "Usuń kafelek",
+      "close": "Zamknij"
     },
     "ui": {
       "delete": "Usuń",
@@ -103,7 +113,19 @@
       "download": "Pobierz",
       "upload": "Wczytaj",
       "zoomIn": "Powiększ",
-      "zoomOut": "Pomniejsz"
+      "zoomOut": "Pomniejsz",
+      "editMode": "Tryb edycji",
+      "previewMode": "Tryb podglądu",
+      "addSurface": "Dodaj powierzchnię",
+      "subtractSurface": "Odejmij powierzchnię",
+      "saveToBrowser": "Zapisz w przeglądarce",
+      "downloadAsFile": "Pobierz jako plik",
+      "uploadFile": "Wczytaj plik",
+      "makeRightAngle": "Utwórz kąt prosty",
+      "deleteCorner": "Usuń róg",
+      "deleteWall": "Usuń ścianę",
+      "deleteSurface": "Usuń powierzchnię",
+      "editPattern": "Edytuj wzór"
     },
     "measurements": {
       "mm": "mm",

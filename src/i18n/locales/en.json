@@ -91,7 +91,17 @@
       "dimensions": "mm",
       "angle": "°",
       "cancel": "Cancel",
-      "save": "Save"
+      "save": "Save",
+      "addTriangle": "Add triangle",
+      "addRectangleHorizontal": "Add horizontal rectangle",
+      "addRectangleVertical": "Add vertical rectangle",
+      "addSquare": "Add square",
+      "addDiamond": "Add diamond",
+      "addHexagon": "Add hexagon",
+      "togglePreview": "Toggle preview",
+      "duplicateTile": "Duplicate tile",
+      "deleteTile": "Delete tile",
+      "close": "Close"
     },
     "ui": {
       "delete": "Delete",
@@ -103,7 +113,19 @@
       "download": "Download",
       "upload": "Upload",
       "zoomIn": "Zoom In",
-      "zoomOut": "Zoom Out"
+      "zoomOut": "Zoom Out",
+      "editMode": "Edit mode",
+      "previewMode": "Preview mode",
+      "addSurface": "Add surface",
+      "subtractSurface": "Subtract surface",
+      "saveToBrowser": "Save to browser",
+      "downloadAsFile": "Download as file",
+      "uploadFile": "Upload file",
+      "makeRightAngle": "Make right angle",
+      "deleteCorner": "Delete corner",
+      "deleteWall": "Delete wall",
+      "deleteSurface": "Delete surface",
+      "editPattern": "Edit pattern"
     },
     "measurements": {
       "mm": "mm",

@@ -102,7 +102,9 @@ const PatternCanvasComponent = ({ width, height, pattern, selectedId, isDragging
               width={pattern.width}
               height={pattern.height} 
               listening={false}
-              stroke={"rgba(0,0,0,0.1)"}
+              dash={[5, 5]}
+              strokeWidth={1}
+              stroke={"rgba(0,0,0,0.5)"}
               fill="transparent" />
         </Group>
     </Layer>

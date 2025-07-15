@@ -18,6 +18,7 @@ import { PatternButton } from "./PatternButton";
 
 import readyPatternsJson from "./ready_patterns.json"
 import { CursorArrows } from "@/components/CursorArrows";
+import { Tooltip } from "@/components/Tooltip";
 
 type ReadyPattern = {
   displayScale: number;
@@ -664,7 +665,12 @@ export const PatternEditor: React.FC<PatternEditorProps> = ({className, value, o
       <div className={classMerge("bg-gray-100 shadow-md rounded-lg flex flex-col flex-nowrap gap-4 p-4 w-full h-full relative", className)}>
         <div className="flex justify-between">
           <h1 className="text-2xl font-bold text-black">{t('planner.patternEditor.title')}</h1>
-          <ToolbarButton onClick={onClose} icon={<X />} />
+          <Tooltip 
+            text={t('planner.patternEditor.close')}
+            position="bottom"
+            component={ref => 
+              <ToolbarButton ref={ref} onClick={onClose} icon={<X />} />
+            } />
         </div>
         <div className="">
           <h2 className="text-lg font-bold text-black">{t('planner.patternEditor.patterns')}</h2>
@@ -682,12 +688,42 @@ export const PatternEditor: React.FC<PatternEditorProps> = ({className, value, o
         </div>
         <div className="relative grow flex flex-col">
           <div className="absolute z-10 left-1/2 top-2 -translate-x-1/2 flex items-center bg-gray-100 shadow-md p-1 space-x-2 rounded-lg">
-            <ToolbarButton onClick={() => addTriangle()} icon={<Triangle />} />
-            <ToolbarButton onClick={() => addRectangleHorizontal()} icon={<RectangleHorizontal />} />
-            <ToolbarButton onClick={() => addRectangleVertical()} icon={<RectangleVertical />} />
-            <ToolbarButton onClick={() => addSquare()} icon={<Square />} />
-            <ToolbarButton onClick={() => addDiamond()} icon={<Diamond />} />
-            <ToolbarButton onClick={() => addHexagon()} icon={<Hexagon />} />
+            <Tooltip 
+              text={t('planner.patternEditor.addTriangle')}
+              position="bottom"
+              component={ref => 
+                <ToolbarButton ref={ref} onClick={() => addTriangle()} icon={<Triangle />} />
+              } />
+            <Tooltip 
+              text={t('planner.patternEditor.addRectangleHorizontal')}
+              position="bottom"
+              component={ref => 
+                <ToolbarButton ref={ref} onClick={() => addRectangleHorizontal()} icon={<RectangleHorizontal />} />
+              } />
+            <Tooltip 
+              text={t('planner.patternEditor.addRectangleVertical')}
+              position="bottom"
+              component={ref => 
+                <ToolbarButton ref={ref} onClick={() => addRectangleVertical()} icon={<RectangleVertical />} />
+              } />
+            <Tooltip 
+              text={t('planner.patternEditor.addSquare')}
+              position="bottom"
+              component={ref => 
+                <ToolbarButton ref={ref} onClick={() => addSquare()} icon={<Square />} />
+              } />
+            <Tooltip 
+              text={t('planner.patternEditor.addDiamond')}
+              position="bottom"
+              component={ref => 
+                <ToolbarButton ref={ref} onClick={() => addDiamond()} icon={<Diamond />} />
+              } />
+            <Tooltip 
+              text={t('planner.patternEditor.addHexagon')}
+              position="bottom"
+              component={ref => 
+                <ToolbarButton ref={ref} onClick={() => addHexagon()} icon={<Hexagon />} />
+              } />
           </div>
           <div className="grow">
             <ResizePlanner render={(dimensions) => <PatternCanvas 
@@ -713,7 +749,12 @@ export const PatternEditor: React.FC<PatternEditorProps> = ({className, value, o
               <span className="text-black">x</span>
               <input type="number" min={0} step={1} disabled={!pattern.tiles.length} className="w-20 h-8 text-black text-center border border-black rounded-md bg-gray-100" value={pattern.height * (pattern.scale * 10)} onChange={e => setPattern(c=> ({...c, height: e.target.valueAsNumber / (pattern.scale * 10)}))} />
               <span className="text-black">{t('planner.measurements.mm')}</span>
-              <ToolbarButton onClick={() => setPreview(c => !c)} icon={preview ? <EyeOff /> : <Eye/>}/>
+              <Tooltip 
+                text={t('planner.patternEditor.togglePreview')}
+                position="top"
+                component={ref => 
+                  <ToolbarButton ref={ref} onClick={() => setPreview(c => !c)} icon={preview ? <EyeOff /> : <Eye/>}/>
+                } />
           </div>
           {edited && (
             <div className="absolute z-10 left-2 top-5 bg-gray-100 shadow-md p-1 rounded-lg flex flex-col gap-1 items-center justify-center">
@@ -723,14 +764,24 @@ export const PatternEditor: React.FC<PatternEditorProps> = ({className, value, o
                 onChange={e => setPattern(c=> ({...c, tiles: c.tiles.map(t => t.id === edited ? {...t, color: e.target.value } : t)}))} 
                 className="w-full h-9 m-0 p-0 rounded-md border border-solid border-black cursor-pointer hover:text-red-800 hover:bg-gray-200" 
               />
-              <ToolbarButton onClick={duplicateTile} icon={<Copy />} />
+              <Tooltip 
+                text={t('planner.patternEditor.duplicateTile')}
+                position="right"
+                component={ref => 
+                  <ToolbarButton ref={ref} onClick={duplicateTile} icon={<Copy />} />
+                } />
               <CursorArrows 
                 onDown={moveTileDown}
                 onLeft={moveTileLeft}
                 onRight={moveTileRight}
                 onUp={moveTileUp}
               />
-              <ToolbarButton variant="danger" onClick={removeTile} icon={<Trash2 />} />
+              <Tooltip 
+                text={t('planner.patternEditor.deleteTile')}
+                position="right"
+                component={ref => 
+                  <ToolbarButton ref={ref} variant="danger" onClick={removeTile} icon={<Trash2 />} />
+                } />
             </div>
           )}
           {rotateCursor && <RotateCcw className="fixed text-black -translate-1/2 pointer-events-none" ref={cursorRef}  />}

@@ -29,7 +29,7 @@ const getVariantStyles = (variant: ToolbarButtonProps['variant']) => {
   }
 }
 
-export const ToolbarButton: React.FC<ToolbarButtonProps> = (props) => {
+export const ToolbarButtonComponent: React.ForwardRefRenderFunction<HTMLButtonElement, ToolbarButtonProps> = ((props, ref) => {
   const { onClick, label, icon, disabled, variant = "default", active, wide, className, style, iconRight, onMouseDown, onMouseUp, onTouchStart, onTouchEnd } = props;
 
   return (    
@@ -48,6 +48,9 @@ export const ToolbarButton: React.FC<ToolbarButtonProps> = (props) => {
       onTouchEnd={onTouchEnd}
       style={style}
       disabled={disabled}
+      ref={ref}
       onClick={onClick}>{!iconRight && icon}{label && <span>{label}</span>}{iconRight && icon}</button>
   );
-};
+});
+
+export const ToolbarButton = React.forwardRef<HTMLButtonElement, ToolbarButtonProps>(ToolbarButtonComponent);
