@@ -8,12 +8,13 @@ import Konva from "konva";
 
 import { useHistoryState } from "@/hooks/useHistoryState";
 import { useTranslation } from "@/hooks/useTranslation";
-import { subtractSurfaces, unionSurfaces, isSurfaceIntersecting, saveToLocalStorage, loadFromLocalStorage, getAngles, getSurfaceArea, doSurfacesIntersect } from "./utils";
+import { subtractSurfaces, unionSurfaces, isSurfaceIntersecting, saveToLocalStorage, loadFromLocalStorage, getAngles, getSurfaceArea, doSurfacesIntersect, adjustSurfaceForWallChange } from "./utils";
 import { removeCustomCursor, setGrabbingCursor } from "./domUtils"
 import EdgeEdit from "./EdgeEdit";
 import { MoveHandler } from "./MoveHandler";
 import { CornerEdit } from "./CornerEdit";
 import { WallDimension } from "./components/WallDimension";
+import { WallDimensionInput } from "./components/WallDimensionInput";
 import { ReducerStateAddSurface, ReducerStateSubtractSurface, usePlannerReducer } from "./usePlannerReducer";
 import { AngleMarker } from "./AngleMarker";
 import { ToolbarButton } from "../ToolbarButton";
@@ -111,6 +112,8 @@ export const Planner: React.FC<PlannerProps> = ({ width, height }) => {
   const { t } = useTranslation();
   const { state: surface, set: setSurface, undo, redo, persist, canUndo, canRedo } = useHistoryState<{id: string, points: Point[], pattern: Pattern}>(loadFromLocalStorage('surface') || { id: self.crypto.randomUUID(), points: [], pattern: defaultPattern });
   const [ surfaceEditorOpen, setSurfaceEditorOpen ] = React.useState<boolean>(false);
+  const [keepRightAngles, setKeepRightAngles] = React.useState<boolean>(true);
+  const stageRef = React.useRef<Konva.Stage>(null);
   const { state, dispatch } = usePlannerReducer(surface.points);
   const { handleDragEnd: handleStageDragEnd, handleDragStart: handleStageDragStart} = useDragStage(setSurface, state.mode === 'preview');
 
@@ -385,6 +388,28 @@ export const Planner: React.FC<PlannerProps> = ({ width, height }) => {
     }
   }, [setSurface])
 
+  const handleWallDimensionChange = (wallIndex: number, newLength: number) => {
+    setSurface((current) => {
+      const newPoints = adjustSurfaceForWallChange(
+        current.points,
+        wallIndex,
+        newLength,
+        0.01, // scale factor
+        keepRightAngles
+      );
+
+      // Check if the new surface would be valid
+      if (isSurfaceIntersecting(newPoints)) {
+        return current; // Don't update if it would create intersections
+      }
+
+      return {
+        ...current,
+        points: newPoints,
+      };
+    });
+  };
+
   const downloadSurface = () => {
     const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(surface));
     const downloadAnchorNode = document.createElement("a");
@@ -575,6 +600,7 @@ export const Planner: React.FC<PlannerProps> = ({ width, height }) => {
         </>
       )}
       <Stage
+        ref={stageRef}
         width={width}
         height={height}
         className={classMerge("bg-white", 
@@ -688,6 +714,18 @@ export const Planner: React.FC<PlannerProps> = ({ width, height }) => {
             ) : null}
         </Layer>
       </Stage>
+      {state.mode === 'edit-wall' && (
+        <WallDimensionInput
+          pointA={surface.points[state.wallIndex]}
+          pointB={surface.points[(state.wallIndex + 1) % surface.points.length]}
+          scale={0.01}
+          globalScale={globalScale}
+          stagePosition={stageRef.current?.position() || { x: 0, y: 0 }}
+          onDimensionChange={(newLength) => handleWallDimensionChange(state.wallIndex, newLength)}
+          keepRightAngles={keepRightAngles}
+          onKeepRightAnglesChange={setKeepRightAngles}
+        />
+      )}
     </div>
   );
 };

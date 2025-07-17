@@ -125,7 +125,9 @@
       "deleteCorner": "Delete corner",
       "deleteWall": "Delete wall",
       "deleteSurface": "Delete surface",
-      "editPattern": "Edit pattern"
+      "editPattern": "Edit pattern",
+      "editWallLength": "Edit wall length",
+      "keepRightAngles": "Keep right angles"
     },
     "measurements": {
       "mm": "mm",

@@ -17,40 +17,17 @@ interface SurfaceProps {
 
 const patternCanvas = createPatternCanvas();
 
-
-const getOffsetPolygon = (points: Point[], hatchOffset: number) => {
-  const pts = points;
-  const result: [number, number][] = [];
-  const n = pts.length;
-  for (let i = 0; i < n; i++) {
-    const [x, y] = pts[i];
-    // compute normals of adjacent edges
-    const [xPrev, yPrev] = pts[(i - 1 + n) % n];
-    const [xNext, yNext] = pts[(i + 1) % n];
-    // edge vectors
-    const vx1 = x - xPrev, vy1 = y - yPrev;
-    const vx2 = xNext - x,   vy2 = yNext - y;
-    // normals
-    const len1 = Math.hypot(vx1, vy1) || 1;
-    const len2 = Math.hypot(vx2, vy2) || 1;
-    const nx1 = vy1 / len1, ny1 = -vx1 / len1;
-    const nx2 = vy2 / len2, ny2 = -vx2 / len2;
-    // average normal
-    const nx = (nx1 + nx2) / 2;
-    const ny = (ny1 + ny2) / 2;
-    const norm = Math.hypot(nx, ny) || 1;
-    result.push([x + (nx / norm) * hatchOffset, y + (ny / norm) * hatchOffset]);
-  }
-  return result;
-}
-
-const hatchOffset = 25;
-
 export const Surface: React.FC<SurfaceProps> = ({ points, id, onClick, pattern, disabled, edit, onChange}) => {
-  // prepare offset polygon for pattern band
-  const offsetPolygon = useMemo(() => getOffsetPolygon(points, hatchOffset), [points]);
   const [background, setBackground] = React.useState<HTMLImageElement | undefined>(undefined);
-  
+  const lineRef = React.useRef<Konva.Line>(null);
+
+  useEffect(() => {
+    if (lineRef.current) {
+      const ctx = lineRef.current.toCanvas().getContext('2d')!;
+      const pattern = ctx.createPattern(patternCanvas, 'repeat');
+      lineRef.current.stroke(pattern as unknown as CanvasGradient);
+    }
+  }, [])
 
   useEffect(() => {
     if (!pattern || pattern.tiles.length === 0) return;
@@ -100,12 +77,11 @@ export const Surface: React.FC<SurfaceProps> = ({ points, id, onClick, pattern, 
       <Line
         key={`band-${id}`}
         id={`band-${id}`}
-        points={offsetPolygon.flat()}
+        points={points.flat()}
+        ref={lineRef}
         closed
-        fillPatternImage={patternCanvas}
-        fillPatternRepeat="repeat"
-        fillPatternRotation={Math.PI / 4}
-        fillRule="evenodd"
+        strokeWidth={45}
+        lineJoin="miter"
       />
       <Line
         key={`mask-${id}`}

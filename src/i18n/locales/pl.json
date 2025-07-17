@@ -125,7 +125,9 @@
       "deleteCorner": "Usuń róg",
       "deleteWall": "Usuń ścianę",
       "deleteSurface": "Usuń powierzchnię",
-      "editPattern": "Edytuj wzór"
+      "editPattern": "Edytuj wzór",
+      "editWallLength": "Edytuj długość ściany",
+      "keepRightAngles": "Zachowaj kąty proste"
     },
     "measurements": {
       "mm": "mm",

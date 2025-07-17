@@ -472,3 +472,137 @@ export const getSurfaceIntersectionArea = (surfaceA: Point[], surfaceB: Point[])
     return 0;
   }
 };
+
+/**
+ * Calculates the distance between two points
+ */
+export const getPointDistance = (pointA: Point, pointB: Point): number => {
+  return Math.hypot(pointB[0] - pointA[0], pointB[1] - pointA[1]);
+};
+
+/**
+ * Calculates a new point B position to achieve the target distance from point A
+ * The direction is preserved from the original A->B vector
+ */
+export const adjustWallLength = (pointA: Point, pointB: Point, targetLength: number, scale: number): Point => {
+  const currentPixelLength = getPointDistance(pointA, pointB);
+  const targetPixelLength = targetLength / scale;
+  
+  if (currentPixelLength === 0) return pointB;
+  
+  const ratio = targetPixelLength / currentPixelLength;
+  const dx = pointB[0] - pointA[0];
+  const dy = pointB[1] - pointA[1];
+  
+  return [pointA[0] + dx * ratio, pointA[1] + dy * ratio];
+};
+
+/**
+ * Checks if three points form a right angle (90 degrees) at the middle point
+ */
+export const isRightAngle = (pointA: Point, pointB: Point, pointC: Point): boolean => {
+  // Check if the angle at pointB is exactly 90 degrees using dot product
+  const [ax, ay] = pointA;
+  const [bx, by] = pointB;
+  const [cx, cy] = pointC;
+  
+  // Vectors from B to A and B to C
+  const vBA = [ax - bx, ay - by];
+  const vBC = [cx - bx, cy - by];
+  
+  // Dot product should be 0 for perpendicular vectors
+  const dotProduct = vBA[0] * vBC[0] + vBA[1] * vBC[1];
+  
+  // Allow small tolerance for floating point errors (1 pixel tolerance)
+  return Math.abs(dotProduct) < 10;
+};
+
+/**
+ * Adjusts a corner point to maintain right angles when a neighboring wall length changes
+ */
+export const maintainRightAngle = (
+  wallStartPoint: Point,
+  originalWallEndPoint: Point,
+  cornerPoint: Point,
+  newWallEndPoint: Point
+): Point => {
+  // Check if the original angle at the wall end was a right angle
+  if (!isRightAngle(wallStartPoint, originalWallEndPoint, cornerPoint)) {
+    return cornerPoint;
+  }
+  
+  // Vector from original wall end to corner
+  const originalToCorner = [
+    cornerPoint[0] - originalWallEndPoint[0], 
+    cornerPoint[1] - originalWallEndPoint[1]
+  ];
+  const cornerDistance = Math.hypot(originalToCorner[0], originalToCorner[1]);
+  
+  if (cornerDistance === 0) return newWallEndPoint;
+  
+  // Vector of the new wall (from start to new end)
+  const newWallVector = [
+    newWallEndPoint[0] - wallStartPoint[0],
+    newWallEndPoint[1] - wallStartPoint[1]
+  ];
+  const newWallLength = Math.hypot(newWallVector[0], newWallVector[1]);
+  
+  if (newWallLength === 0) return cornerPoint;
+  
+  // Normalized new wall direction
+  const newWallUnit = [newWallVector[0] / newWallLength, newWallVector[1] / newWallLength];
+  
+  // Calculate two possible perpendicular directions
+  const perp1 = [-newWallUnit[1], newWallUnit[0]];
+  const perp2 = [newWallUnit[1], -newWallUnit[0]];
+  
+  // Calculate potential new corner positions
+  const corner1: Point = [
+    newWallEndPoint[0] + perp1[0] * cornerDistance,
+    newWallEndPoint[1] + perp1[1] * cornerDistance
+  ];
+  const corner2: Point = [
+    newWallEndPoint[0] + perp2[0] * cornerDistance,
+    newWallEndPoint[1] + perp2[1] * cornerDistance
+  ];
+  
+  // Choose the corner position that is closest to the original corner
+  const dist1 = Math.hypot(corner1[0] - cornerPoint[0], corner1[1] - cornerPoint[1]);
+  const dist2 = Math.hypot(corner2[0] - cornerPoint[0], corner2[1] - cornerPoint[1]);
+  
+  return dist1 < dist2 ? corner1 : corner2;
+};
+
+/**
+ * Adjusts surface points when a wall length is changed, maintaining right angles if specified
+ */
+export const adjustSurfaceForWallChange = (
+  points: Point[],
+  wallIndex: number,
+  newLength: number,
+  scale: number,
+  keepRightAngles: boolean = false
+): Point[] => {
+  const newPoints = [...points];
+  const nextIndex = (wallIndex + 1) % points.length;
+  const afterNextIndex = (nextIndex + 1) % points.length;
+  
+  // Calculate new position for the end point of the wall
+  const newEndPoint = adjustWallLength(points[wallIndex], points[nextIndex], newLength, scale);
+  newPoints[nextIndex] = newEndPoint;
+  
+  if (keepRightAngles && points.length > 3) {
+    // Adjust the corner after the changed wall to maintain right angle
+    if (afterNextIndex !== wallIndex) {
+      const adjustedCorner = maintainRightAngle(
+        points[wallIndex],    // Wall start point (stays fixed)
+        points[nextIndex],    // Original wall end point
+        points[afterNextIndex], // Corner to adjust
+        newEndPoint          // New wall end point
+      );
+      newPoints[afterNextIndex] = adjustedCorner;
+    }
+  }
+  
+  return newPoints;
+};
