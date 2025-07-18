@@ -118,6 +118,7 @@
       "previewMode": "Preview mode",
       "addSurface": "Add surface",
       "subtractSurface": "Subtract surface",
+      "drawWalls": "Draw walls",
       "saveToBrowser": "Save to browser",
       "downloadAsFile": "Download as file",
       "uploadFile": "Upload file",

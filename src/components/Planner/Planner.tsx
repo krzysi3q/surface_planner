@@ -1,7 +1,7 @@
 import { Stage, Layer, Line } from "react-konva";
 import React, { useMemo, useRef } from "react";
 import type { SurfaceType, Point, Pattern } from "./types";
-import { Download, Hand, PencilRuler, Redo, Save, SplinePointer, SquaresSubtract, SquaresUnite, Trash2, Undo, Upload, ZoomIn, ZoomOut } from 'lucide-react'
+import { Download, Hand, PencilRuler, Redo, Save, SplinePointer, SquaresSubtract, SquaresUnite, Trash2, Undo, Upload, Waypoints, ZoomIn, ZoomOut } from 'lucide-react'
 import { RightAngle } from "@/components/Icons/RightAngle";
 
 import Konva from "konva";
@@ -46,6 +46,9 @@ const defaultPattern: Pattern = {
     tilesGap: 0,
     scale: 0.4,
   }
+
+// Distance threshold for closing polygon by clicking near start point (adjustable)
+const CLOSE_POLYGON_THRESHOLD = 50;
 
 
 const getWallKey = (pointA: Point, pointB: Point) => {
@@ -119,6 +122,45 @@ export const Planner: React.FC<PlannerProps> = ({ width, height }) => {
 
   const [currentSurface, setCurrentSurface] =
     React.useState<TemporarySurface | null>(null);
+
+  // State for wall drawing mode
+  const [drawingPoints, setDrawingPoints] = React.useState<Point[]>([]);
+  const [currentMousePos, setCurrentMousePos] = React.useState<Point | null>(null);
+  const [lastClickTime, setLastClickTime] = React.useState<number>(0);
+
+  // Reset drawing state when mode changes
+  React.useEffect(() => {
+    if (state.mode !== 'draw-walls') {
+      setDrawingPoints([]);
+      setCurrentMousePos(null);
+    }
+  }, [state.mode]);
+
+  // Handle escape key to cancel drawing
+  React.useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape' && state.mode === 'draw-walls' && drawingPoints.length > 0) {
+        setDrawingPoints([]);
+        setCurrentMousePos(null);
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [state.mode, drawingPoints.length]);
+
+  // Helper function to calculate distance between two points
+  const getDistance = (point1: Point, point2: Point): number => {
+    const dx = point1[0] - point2[0];
+    const dy = point1[1] - point2[1];
+    return Math.sqrt(dx * dx + dy * dy);
+  };
+
+  // Helper function to check if drawing should be completed
+  const shouldCompleteDrawing = (currentPos: Point, points: Point[]): boolean => {
+    if (points.length < 3) return false;
+    return getDistance(currentPos, points[0]) <= CLOSE_POLYGON_THRESHOLD;
+  };
 
   const handleStageClick = (e: Konva.KonvaEventObject<MouseEvent>) => {
     if (state.editable && typeof e.target.attrs.id !== "string") {
@@ -199,7 +241,7 @@ export const Planner: React.FC<PlannerProps> = ({ width, height }) => {
     }));
   }
 
-  const handleMouseDown = (e: Konva.KonvaEventObject<MouseEvent>) => {
+  const handleMouseDown = (e: Konva.KonvaEventObject<MouseEvent | TouchEvent>) => {
     // prevent drawing while dragging handlers
     if (state.mode === 'add-surface' || state.mode === 'subtract-surface') {  
       // use currentTarget to reliably get stage
@@ -216,12 +258,41 @@ export const Planner: React.FC<PlannerProps> = ({ width, height }) => {
       ];
       const newSurface: TemporarySurface = { id, points, state: "valid", pattern: surface.pattern, idle: true };
       setCurrentSurface(newSurface);
+    } else if (state.mode === 'draw-walls') {
+      const stage = e.currentTarget.getStage();
+      const pos = stage?.getPointerPosition();
+      if (!pos) return;
+      
+      const currentTime = Date.now();
+      const clickPos: Point = [pos.x, pos.y];
+      
+      // Check for double-click/tap (within 500ms)
+      if (currentTime - lastClickTime < 500 && drawingPoints.length >= 3) {
+        // Double-click/tap: complete the polygon
+        console.log('Double-click detected, completing drawing');
+        completeWallDrawing();
+        return;
+      }
+      
+      // Check if clicking near start point to close polygon
+      if (drawingPoints.length >= 3 && shouldCompleteDrawing(clickPos, drawingPoints)) {
+        console.log('Click near start point, completing drawing');
+        completeWallDrawing();
+        return;
+      }
+      
+      // Add new point to drawing
+      console.log('Adding new point to drawing');
+      setDrawingPoints(prev => [...prev, clickPos]);
+      setLastClickTime(currentTime);
     } else if (state.mode === 'preview') {
-      setGrabbingCursor(e);
+      if (e.evt instanceof MouseEvent) {
+        setGrabbingCursor(e as Konva.KonvaEventObject<MouseEvent>);
+      }
     }
   };
 
-  const handleMouseMove = (e: Konva.KonvaEventObject<MouseEvent>) => {
+  const handleMouseMove = (e: Konva.KonvaEventObject<MouseEvent | TouchEvent>) => {
     if (state.mode === 'add-surface' || state.mode === 'subtract-surface') {
       if (!currentSurface) return;
       const stage = e.currentTarget.getStage();
@@ -244,10 +315,15 @@ export const Planner: React.FC<PlannerProps> = ({ width, height }) => {
         state: validateSurfaceOperation(surface.points, points, state.mode) ? "valid" : "error",
         idle: false,
       });
+    } else if (state.mode === 'draw-walls') {
+      const stage = e.currentTarget.getStage();
+      const pos = stage?.getPointerPosition();
+      if (!pos) return;
+      setCurrentMousePos([pos.x, pos.y]);
     }
   };
 
-  const handleMouseUp = (e: Konva.KonvaEventObject<MouseEvent>) => {
+  const handleMouseUp = (e: Konva.KonvaEventObject<MouseEvent | TouchEvent>) => {
     if (state.mode === 'add-surface' || state.mode === 'subtract-surface') {
       if (!currentSurface) return;
       // first rectangle: just add
@@ -284,9 +360,61 @@ export const Planner: React.FC<PlannerProps> = ({ width, height }) => {
       
       setCurrentSurface(null);
     } else if (state.mode === 'preview') {
-      removeCustomCursor(e);
+      if (e.evt instanceof MouseEvent) {
+        removeCustomCursor(e as Konva.KonvaEventObject<MouseEvent>);
+      }
       startPosRef.current = null;
     }
+  };
+
+  const completeWallDrawing = () => {
+    if (drawingPoints.length < 3) {
+      return;
+    }
+    
+    // Check for self-intersections (only if we have more than 4 points to avoid false positives)
+    if (drawingPoints.length > 4 && isSurfaceIntersecting(drawingPoints)) {
+      // Don't complete drawing if it would create self-intersections
+      return;
+    }
+    
+    // If there's an existing surface, merge with it
+    if (surface.points.length > 0) {
+      try {
+        const unionResult = unionSurfaces(surface.points, drawingPoints);
+        if (unionResult && unionResult.length > 0 && unionResult[0].length > 0) {
+          setSurface((current) => ({
+            ...current,
+            points: unionResult[0],
+          }));
+        } else {
+          // If union fails, just replace the surface
+          setSurface((current) => ({
+            ...current,
+            points: drawingPoints,
+          }));
+        }
+      } catch (error) {
+        console.error('Union operation failed:', error);
+        // Fallback: just replace the surface
+        setSurface((current) => ({
+          ...current,
+          points: drawingPoints,
+        }));
+      }
+    } else {
+      // No existing surface, create new one
+      setSurface({
+        id: self.crypto.randomUUID(),
+        points: drawingPoints,
+        pattern: surface.pattern,
+      });
+    }
+    
+    // Reset drawing state
+    setDrawingPoints([]);
+    setCurrentMousePos(null);
+    dispatch({ type: 'default' });
   };
 
   const removePoints = (indexes: number[]) => {
@@ -472,6 +600,12 @@ export const Planner: React.FC<PlannerProps> = ({ width, height }) => {
             <ToolbarButton ref={ref} onClick={() => dispatch({type: 'subtract-surface'})} active={state.mode === 'subtract-surface'} icon={<SquaresSubtract />} />
           } />
         <Tooltip 
+          text={t('planner.ui.drawWalls')}
+          position="bottom"
+          component={ref => 
+            <ToolbarButton ref={ref} onClick={() => dispatch({type: 'draw-walls'})} active={state.mode === 'draw-walls'} icon={<Waypoints />} />
+          } />
+        <Tooltip 
           text={t('planner.ui.undo')}
           position="bottom"
           component={ref => 
@@ -607,6 +741,7 @@ export const Planner: React.FC<PlannerProps> = ({ width, height }) => {
           state.mode === 'preview' && "cursor-grab",
           state.mode === 'add-surface' && "cursor-crosshair",
           state.mode === 'subtract-surface' && "cursor-crosshair",
+          state.mode === 'draw-walls' && "cursor-crosshair",
           state.mode === 'edit-wall' && "default-cursor",
           state.mode === 'edit-corner' && "default-cursor",
           state.mode === 'default' && "default-cursor",
@@ -614,6 +749,9 @@ export const Planner: React.FC<PlannerProps> = ({ width, height }) => {
         onMouseDown={handleMouseDown}
         onMouseMove={handleMouseMove}
         onMouseUp={handleMouseUp}
+        onTouchStart={handleMouseDown}
+        onTouchMove={handleMouseMove}
+        onTouchEnd={handleMouseUp}
         onClick={handleStageClick}
         scale={{ x: globalScale / 100, y: globalScale / 100 }}
         draggable={state.mode === 'preview'}
@@ -712,6 +850,68 @@ export const Planner: React.FC<PlannerProps> = ({ width, height }) => {
                 onDragEnd={handleDragEnd}
                   />
             ) : null}
+        </Layer>
+        <Layer>
+          {/* Drawing walls visualization */}
+          {state.mode === 'draw-walls' && drawingPoints.length > 0 && (
+            <>
+              {/* Completed segments */}
+              {drawingPoints.length > 1 && (
+                <Line
+                  points={drawingPoints.flat()}
+                  stroke="black"
+                  strokeWidth={2}
+                  lineCap="round"
+                  lineJoin="round"
+                />
+              )}
+              {/* Current segment being drawn */}
+              {currentMousePos && (
+                <>
+                  <Line
+                    points={[
+                      ...drawingPoints[drawingPoints.length - 1],
+                      ...currentMousePos
+                    ]}
+                    stroke="rgba(0, 0, 0, 0.2)"
+                    strokeWidth={2}
+                    lineCap="round"
+                    dash={[4, 4]}
+                  />
+                  {/* Dimension for current segment */}
+                  <WallDimension
+                    pointA={drawingPoints[drawingPoints.length - 1]}
+                    pointB={currentMousePos}
+                    scale={0.01}
+                  />
+                </>
+              )}
+              {/* Closing line preview when near start point */}
+              {drawingPoints.length >= 3 && currentMousePos && shouldCompleteDrawing(currentMousePos, drawingPoints) && (
+                <Line
+                  points={[
+                    ...currentMousePos,
+                    ...drawingPoints[0]
+                  ]}
+                  stroke="rgba(0, 255, 0, 0.8)"
+                  strokeWidth={2}
+                  lineCap="round"
+                  dash={[4, 4]}
+                />
+              )}
+              {/* Start point indicator */}
+              {drawingPoints.length > 0 && (
+                <Line
+                  points={[0, 0, 0, 0]}
+                  x={drawingPoints[0][0]}
+                  y={drawingPoints[0][1]}
+                  stroke="green"
+                  strokeWidth={10}
+                  lineCap="round"
+                />
+              )}
+            </>
+          )}
         </Layer>
       </Stage>
       {state.mode === 'edit-wall' && (

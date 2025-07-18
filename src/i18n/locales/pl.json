@@ -118,6 +118,7 @@
       "previewMode": "Tryb podglądu",
       "addSurface": "Dodaj powierzchnię",
       "subtractSurface": "Odejmij powierzchnię",
+      "drawWalls": "Rysuj ściany",
       "saveToBrowser": "Zapisz w przeglądarce",
       "downloadAsFile": "Pobierz jako plik",
       "uploadFile": "Wczytaj plik",

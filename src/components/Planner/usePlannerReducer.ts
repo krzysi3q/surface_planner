@@ -49,7 +49,13 @@ export interface ReducerStateSubtractSurface {
   editable: true;
 }
 
-type ReducerState = (ReducerStateDefault | ReducerStatePreview | ReducerStateEditWall | ReducerStateEditCorner | ReducerStateEditSurface|  ReducerStateAddSurface | ReducerStateSubtractSurface)
+export interface ReducerStateDrawWalls {
+  mode: 'draw-walls';
+  wallIndex: null;
+  editable: false;
+}
+
+type ReducerState = (ReducerStateDefault | ReducerStatePreview | ReducerStateEditWall | ReducerStateEditCorner | ReducerStateEditSurface|  ReducerStateAddSurface | ReducerStateSubtractSurface | ReducerStateDrawWalls)
 
 type Actions = {
   type: 'default'
@@ -71,6 +77,8 @@ type Actions = {
   type: 'add-surface';
 } | {
   type: 'subtract-surface';
+} | {
+  type: 'draw-walls';
 }
 
 const getReducer = (surfacePoints: Point[]): React.Reducer<ReducerState, Actions> => (state, action) => {
@@ -133,6 +141,12 @@ const getReducer = (surfacePoints: Point[]): React.Reducer<ReducerState, Actions
         mode: 'subtract-surface',
         wallIndex: null,
         editable: true,
+      }
+    case 'draw-walls':
+      return {
+        mode: 'draw-walls',
+        wallIndex: null,
+        editable: false,
       }
     default:
       return state;
