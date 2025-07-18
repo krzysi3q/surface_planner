@@ -719,6 +719,7 @@ export const Planner: React.FC<PlannerProps> = ({ width, height }) => {
           pointA={surface.points[state.wallIndex]}
           pointB={surface.points[(state.wallIndex + 1) % surface.points.length]}
           scale={0.01}
+          key={state.wallIndex}
           globalScale={globalScale}
           stagePosition={stageRef.current?.position() || { x: 0, y: 0 }}
           onDimensionChange={(newLength) => handleWallDimensionChange(state.wallIndex, newLength)}
