@@ -3,6 +3,7 @@ import { Circle } from "react-konva";
 import { setPointerCursor, removeCustomCursor, setMoveCursor } from "./domUtils";
 import Konva from "konva";
 import { Point } from "./types";
+import { useTouchDevice } from "@/hooks/useTouchDevice";
 
 interface CornerEditProps {
   x: number;
@@ -15,25 +16,38 @@ interface CornerEditProps {
   onDragMove?: (e: Konva.KonvaEventObject<DragEvent>, diff: Point) => void;
 }
 
-const radius = 8;
-
 export const CornerEdit: React.FC<CornerEditProps> = ({ x, y, wallIndex, edit, onClick, onDragStart, onDragEnd, onDragMove }) => {
   const [state, setState] = React.useState<'default' | 'hover' >('default');
   const startPosRef = React.useRef<{ x: number; y: number } | null>(null);
+  const isTouchDevice = useTouchDevice();
+  
+  // Use larger radius for touch devices
+  const radius = isTouchDevice ? 12 : 8;
 
   const handleDragStart = (e: Konva.KonvaEventObject<DragEvent>) => {
     onDragStart?.(e);
-    const pos = e.currentTarget.getStage()?.getPointerPosition();
-    if (pos) startPosRef.current = { x: pos.x, y: pos.y };
+    const stage = e.currentTarget.getStage();
+    const pos = stage?.getPointerPosition();
+    if (pos && stage) {
+      // Store position in stage coordinates
+      const scale = stage.scale();
+      startPosRef.current = { x: pos.x / scale.x, y: pos.y / scale.y };
+    }
   };
 
   const handleDragMove = (e: Konva.KonvaEventObject<DragEvent>) => {
       const startPos = startPosRef.current;
       if (!startPos) return;
-      const pos = e.currentTarget.getStage()?.getPointerPosition();
-      if (!pos) return;
-      const dx = pos.x - startPos.x;
-      const dy = pos.y - startPos.y;
+      const stage = e.currentTarget.getStage();
+      const pos = stage?.getPointerPosition();
+      if (!pos || !stage) return;
+      
+      // Convert current position to stage coordinates
+      const scale = stage.scale();
+      const currentX = pos.x / scale.x;
+      const currentY = pos.y / scale.y;
+      const dx = currentX - startPos.x;
+      const dy = currentY - startPos.y;
       onDragMove?.(e, [dx, dy]);
     };
     const handleEdgeDragEnd = (e: Konva.KonvaEventObject<DragEvent>) => {
@@ -41,7 +55,7 @@ export const CornerEdit: React.FC<CornerEditProps> = ({ x, y, wallIndex, edit, o
       startPosRef.current = null;
     };
   
-  const {handleMouseEnter, handleMouseLeave, handleClick } = useMemo(() => ({
+  const {handleMouseEnter, handleMouseLeave, handleClick, handleTouchStart } = useMemo(() => ({
     handleMouseEnter: (e: Konva.KonvaEventObject<MouseEvent>) => {
       setState('hover');
       if (edit) {
@@ -56,6 +70,11 @@ export const CornerEdit: React.FC<CornerEditProps> = ({ x, y, wallIndex, edit, o
     },
     handleClick: (e: Konva.KonvaEventObject<MouseEvent>) => {
       setMoveCursor(e);
+      onClick?.(wallIndex);
+    },
+    handleTouchStart: (e: Konva.KonvaEventObject<TouchEvent>) => {
+      // For touch devices, treat touch start as click
+      e.evt.preventDefault();
       onClick?.(wallIndex);
     }
   }), [edit, onClick, wallIndex]);
@@ -76,6 +95,8 @@ export const CornerEdit: React.FC<CornerEditProps> = ({ x, y, wallIndex, edit, o
       stroke="black"
       strokeWidth={edit ? 2 : 0}
       onClick={handleClick}
+      onTouchStart={handleTouchStart}
+      onTap={handleClick}
       draggable={edit}
       onMouseEnter={handleMouseEnter}
       onMouseLeave={handleMouseLeave}

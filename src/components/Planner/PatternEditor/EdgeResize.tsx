@@ -7,7 +7,8 @@ import { Point } from "../types";
 interface EdgeEditProps {
   pointA: Point;
   pointB: Point;
-  onMouseDown?: (e: Konva.KonvaEventObject<MouseEvent>, direction: 'ns' | 'ew') => void;
+  isTouchDevice?: boolean;
+  onMouseDown?: (e: Konva.KonvaEventObject<MouseEvent | TouchEvent>, direction: 'ns' | 'ew') => void;
   onMouseEnter?: (e: Konva.KonvaEventObject<MouseEvent>, direction: 'ns' | 'ew') => void;
   onMouseLeave?: (e: Konva.KonvaEventObject<MouseEvent>, direction: 'ns' | 'ew') => void;
   name?: string;
@@ -73,16 +74,17 @@ function getRectanglePoints(
 }
 
 export const EdgeResize: React.FC<EdgeEditProps> = (props) => {
-  const { pointA, pointB, onMouseEnter, onMouseLeave, onMouseDown, name } = props;
-  const points = useMemo(() => getRectanglePoints(pointA, pointB, 11, 30), [pointA, pointB]);
+  const { pointA, pointB, isTouchDevice, onMouseEnter, onMouseLeave, onMouseDown, name } = props;
+  const points = useMemo(() => getRectanglePoints(pointA, pointB, isTouchDevice ? 15 : 11, isTouchDevice ? 40 : 30), [pointA, pointB, isTouchDevice]);
 
   // Determine orientation: horizontal (width > height) or vertical (height > width)
   const isHorizontal = Math.abs(pointB[0] - pointA[0]) > Math.abs(pointB[1] - pointA[1]);
 
-  const { handleMouseEnter, handleMouseLeave, handleMouseDown } = useMemo(() => ({
+  const { handleMouseEnter, handleMouseLeave, handleMouseDown, handleTouchStart } = useMemo(() => ({
     handleMouseEnter: (e: Konva.KonvaEventObject<MouseEvent>) => onMouseEnter?.(e, isHorizontal ? 'ns' : 'ew'),
     handleMouseLeave: (e: Konva.KonvaEventObject<MouseEvent>) => onMouseLeave?.(e, isHorizontal ? 'ns' : 'ew'),
-    handleMouseDown: (e: Konva.KonvaEventObject<MouseEvent>) => onMouseDown?.(e, isHorizontal ? 'ns' : 'ew')
+    handleMouseDown: (e: Konva.KonvaEventObject<MouseEvent>) => onMouseDown?.(e, isHorizontal ? 'ns' : 'ew'),
+    handleTouchStart: (e: Konva.KonvaEventObject<TouchEvent>) => onMouseDown?.(e, isHorizontal ? 'ns' : 'ew')
   }), [onMouseEnter, onMouseLeave, onMouseDown, isHorizontal]);
 
   const elName = useMemo(() => {
@@ -92,16 +94,18 @@ export const EdgeResize: React.FC<EdgeEditProps> = (props) => {
 
   return (
     <Line 
-      points={points} // Rectangle coordinates    
+      points={points}
       strokeWidth={2}
       stroke="black"
-      closed={true} // Close the shape
+      closed={true}
       fill="white"
-      onMouseEnter={handleMouseEnter}
-      onMouseLeave={handleMouseLeave}
-      onMouseDown={handleMouseDown}
-      name={elName} // Use the name prop for identification
-      listening={true} // Ensure the shape is interactive
+      onMouseEnter={!isTouchDevice ? handleMouseEnter : undefined}
+      onMouseLeave={!isTouchDevice ? handleMouseLeave : undefined}
+      onMouseDown={!isTouchDevice ? handleMouseDown : undefined}
+      onTouchStart={isTouchDevice ? handleTouchStart : undefined}
+      onTap={isTouchDevice ? handleTouchStart : undefined}
+      name={elName}
+      listening={true}
     />
   );
 };

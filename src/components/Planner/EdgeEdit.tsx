@@ -4,17 +4,18 @@ import Konva from "konva";
 
 import { Point } from "./types";
 import { removeCustomCursor, setPointerCursor } from "./domUtils";
+import { useTouchDevice } from "@/hooks/useTouchDevice";
 
 interface EdgeEditProps {
   pointA: Point;
   pointB: Point;
-  wallIndex: number;
-  edit: boolean;
-  onClick?: (points: Point[], wallIndex: number) => void;
+  onClick?: (points: [Point, Point], wallIndex: number) => void;
   onMouseEnter?: (e: Konva.KonvaEventObject<MouseEvent>) => void;
   onMouseLeave?: (e: Konva.KonvaEventObject<MouseEvent>) => void;
+  wallIndex: number;
+  edit: boolean;
+  disabled: boolean;
   id?: string;
-  disabled?: boolean;
 }
 
 
@@ -28,8 +29,6 @@ function getRectanglePoints(pointA: Point, pointB: Point, size: number): number[
 
   // Calculate the length of the vector
   const length = Math.sqrt(dx * dx + dy * dy);
-
-  // Normalize the vector
   const unitX = dx / length;
   const unitY = dy / length;
 
@@ -69,8 +68,13 @@ function getRectanglePoints(pointA: Point, pointB: Point, size: number): number[
 const EdgeEdit: React.FC<EdgeEditProps> = (props) => {
   const { pointA, pointB, onClick, onMouseEnter, onMouseLeave, wallIndex, edit, disabled } = props;
   const [state, setState] = React.useState<'default' | 'hover' >('default');
-  const points = useMemo(() => getRectanglePoints(pointA, pointB, 16), [pointA, pointB]);
-  const {handleMouseEnter, handleMouseLeave, handleClick } = useMemo(() => ({
+  const isTouchDevice = useTouchDevice();
+  
+  // Use larger size for touch devices
+  const size = isTouchDevice ? 24 : 16;
+  const points = useMemo(() => getRectanglePoints(pointA, pointB, size), [pointA, pointB, size]);
+  
+  const {handleMouseEnter, handleMouseLeave, handleClick, handleTouchStart } = useMemo(() => ({
     handleMouseEnter: (e: Konva.KonvaEventObject<MouseEvent>) => {
       onMouseEnter?.(e);
       if (edit || disabled) return;
@@ -83,6 +87,11 @@ const EdgeEdit: React.FC<EdgeEditProps> = (props) => {
       removeCustomCursor(e);
     },
     handleClick: () => {
+      onClick?.([pointA, pointB], wallIndex);
+    },
+    handleTouchStart: (e: Konva.KonvaEventObject<TouchEvent>) => {
+      // For touch devices, treat touch start as click
+      e.evt.preventDefault();
       onClick?.([pointA, pointB], wallIndex);
     }
   }), [onMouseEnter, edit, disabled, onMouseLeave, onClick, pointA, pointB, wallIndex]);
@@ -98,6 +107,8 @@ const EdgeEdit: React.FC<EdgeEditProps> = (props) => {
         onMouseEnter={handleMouseEnter}
         onMouseLeave={handleMouseLeave}
         onClick={handleClick}
+        onTouchStart={handleTouchStart}
+        onTap={handleClick}
         id={props.id}
       />
       {edit && <Circle x={pointB[0]} y={pointB[1]} radius={2} fill="black" strokeWidth={2} stroke='black'  />}

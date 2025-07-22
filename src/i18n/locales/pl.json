@@ -99,6 +99,9 @@
       "addDiamond": "Dodaj romb",
       "addHexagon": "Dodaj sześciokąt",
       "togglePreview": "Przełącz podgląd",
+      "zoomIn": "Powiększ",
+      "zoomOut": "Pomniejsz",
+      "resetZoom": "Resetuj Powiększenie",
       "duplicateTile": "Duplikuj kafelek",
       "deleteTile": "Usuń kafelek",
       "close": "Zamknij"

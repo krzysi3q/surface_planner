@@ -1,9 +1,11 @@
 import React, { useMemo, useState } from "react";
 import { useTranslation } from '@/hooks/useTranslation';
+import { useTouchDevice } from '@/hooks/useTouchDevice';
 import { classMerge } from "@/utils/classMerge";
+import { v4 as uuid} from 'uuid'
 
 import { ToolbarButton } from "../../ToolbarButton";
-import { CircleCheck, Copy, Diamond, Eye, EyeOff, Hexagon, RectangleHorizontal, RectangleVertical, RotateCcw, RulerDimensionLine, Square, Trash2, Triangle, X } from "lucide-react";
+import { CircleCheck, Copy, Diamond, Eye, EyeOff, Hexagon, RectangleHorizontal, RectangleVertical, RotateCcw, RulerDimensionLine, Square, Trash2, Triangle, X, ZoomIn, ZoomOut, RotateCcw as ResetZoom } from "lucide-react";
 
 import { Pattern, Point, TileType } from "../types"
 import { getBoundingBox, rotateShape, moveTo, getAngles, getCircumscribedCircle } from "../utils"
@@ -54,6 +56,7 @@ const getSquarePoints = (sideLength: number): Point[] => {
 
 export const PatternEditor: React.FC<PatternEditorProps> = ({className, value, onClose, onSubmit}) => {
   const { t } = useTranslation();
+  const isTouchDevice = useTouchDevice();
 
   const [pattern, setPattern] = useState<Pattern>(value || {
     tiles: [],
@@ -67,6 +70,8 @@ export const PatternEditor: React.FC<PatternEditorProps> = ({className, value, o
   });
 
   const [edited, setEdited] = useState<string | null>(null)
+  const [zoom, setZoom] = useState<number>(1)
+  const [panOffset, setPanOffset] = useState<{ x: number, y: number }>({ x: 0, y: 0 })
 
   const addTriangle = () => {
     setPattern(prev => {
@@ -75,7 +80,7 @@ export const PatternEditor: React.FC<PatternEditorProps> = ({className, value, o
       const points = moveTo(trianglePoints, items * 10, items * 10);
       const { center } = getCircumscribedCircle(points);
       const newTile: TileType = {
-        id: self.crypto.randomUUID(),
+        id: uuid(),
         points: points,
         color: "#d6d6d6",
         type: "triangle",
@@ -113,7 +118,7 @@ export const PatternEditor: React.FC<PatternEditorProps> = ({className, value, o
       ], items * 10, items * 10);
       const { center } = getCircumscribedCircle(points);
       const newTile: TileType = {
-        id: self.crypto.randomUUID(),
+        id: uuid(),
         type: "rectangle",
         points: points,
         color: "#d6d6d6",
@@ -150,7 +155,7 @@ export const PatternEditor: React.FC<PatternEditorProps> = ({className, value, o
       ], items * 10, items * 10);
       const { center } = getCircumscribedCircle(points);
       const newTile: TileType = {
-        id: self.crypto.randomUUID(),
+        id: uuid(),
         type: "rectangle",
         points: points,
         color: "#d6d6d6",
@@ -183,7 +188,7 @@ export const PatternEditor: React.FC<PatternEditorProps> = ({className, value, o
       const points = moveTo(getSquarePoints(100), items * 10, items * 10);
       const { center } = getCircumscribedCircle(points);
       const newTile: TileType = {
-        id: self.crypto.randomUUID(),
+        id: uuid(),
         type: "square",
         points: points,
         color: "#d6d6d6",
@@ -220,7 +225,7 @@ export const PatternEditor: React.FC<PatternEditorProps> = ({className, value, o
       ], items * 10, items * 10);
       const { center } = getCircumscribedCircle(points);
       const newTile: TileType = {
-        id: self.crypto.randomUUID(),
+        id: uuid(),
         type: "diamond",
         points: points,
         color: "#d6d6d6",
@@ -259,7 +264,7 @@ export const PatternEditor: React.FC<PatternEditorProps> = ({className, value, o
       ], items * 10, items * 10);
       const { center } = getCircumscribedCircle(points);
       const newTile: TileType = {
-        id: self.crypto.randomUUID(),
+        id: uuid(),
         type: "hexagon",
         points: points,
         color: "#d6d6d6",
@@ -285,7 +290,7 @@ export const PatternEditor: React.FC<PatternEditorProps> = ({className, value, o
     });
   }
 
-  const getPosition = (e: Konva.KonvaEventObject<MouseEvent>) => {
+  const getPosition = (e: Konva.KonvaEventObject<MouseEvent | TouchEvent>) => {
     const stage = e.target.getStage();
     const position = stage?.getPointerPosition()
     return position || null;
@@ -295,14 +300,44 @@ export const PatternEditor: React.FC<PatternEditorProps> = ({className, value, o
   const [rotateCursor, setRotateCursor] = useState<boolean>(false)
   const cursorRef = React.useRef<SVGSVGElement>(null);
   const initialPosition = React.useRef<{ x: number, y: number } | null>(null);
-  const onBackgroundClick = (e: Konva.KonvaEventObject<MouseEvent>) => {
-    if(e.target === e.currentTarget) { 
+  const lastTouchDistance = React.useRef<number | null>(null);
+  const lastTouchCenter = React.useRef<{ x: number, y: number } | null>(null);
+  const isPanning = React.useRef<boolean>(false);
+  const lastPanPosition = React.useRef<{ x: number, y: number } | null>(null);
+  const panStartTime = React.useRef<number>(0);
+  const panVelocity = React.useRef<{ x: number, y: number }>({ x: 0, y: 0 });
+
+  const getTouchDistance = (touches: TouchList) => {
+    if (touches.length < 2) return null;
+    const touch1 = touches[0];
+    const touch2 = touches[1];
+    return Math.sqrt(
+      Math.pow(touch2.clientX - touch1.clientX, 2) +
+      Math.pow(touch2.clientY - touch1.clientY, 2)
+    );
+  };
+
+  const getTouchCenter = (touches: TouchList) => {
+    if (touches.length < 2) return null;
+    const touch1 = touches[0];
+    const touch2 = touches[1];
+    return {
+      x: (touch1.clientX + touch2.clientX) / 2,
+      y: (touch1.clientY + touch2.clientY) / 2
+    };
+  };
+
+  const onBackgroundClick = (e: Konva.KonvaEventObject<MouseEvent | TouchEvent>) => {
+    // Only deselect if not panning (to avoid deselecting during touch pan gestures)
+    if(e.target === e.currentTarget && !isPanning.current) { 
       setEdited(null);
     }
   }
 
-  const onTileClick = (e: Konva.KonvaEventObject<MouseEvent>, id: string) => {
-    setMoveCursor(e);
+  const onTileClick = (e: Konva.KonvaEventObject<MouseEvent | TouchEvent>, id: string) => {
+    if (e.evt instanceof MouseEvent && !isTouchDevice) {
+      setMoveCursor(e as Konva.KonvaEventObject<MouseEvent>);
+    }
     setEdited(id);
     const tileIndex = pattern.tiles.findIndex(tile => tile.id === id)
     setPattern(prev => {
@@ -319,60 +354,193 @@ export const PatternEditor: React.FC<PatternEditorProps> = ({className, value, o
     })
   }
 
-  const onTileDown = (e: Konva.KonvaEventObject<MouseEvent>, data: TileEventData) => {
+  const onTileDown = (e: Konva.KonvaEventObject<MouseEvent | TouchEvent>, data: TileEventData) => {
     const tile = pattern.tiles.find(t => t.id === data.id);
     const position = getPosition(e) 
     if (!tile || !position) return;
     initialPosition.current = position;
     setActiveData({ tile, action: data.action, isSecondary: data.isSecondary });
   }
-  const onMouseUp = (e: Konva.KonvaEventObject<MouseEvent>) => {
+
+  const onTouchStart = (e: Konva.KonvaEventObject<TouchEvent>) => {
+    if (e.evt.touches.length === 2) {
+      // Start pinch gesture
+      const distance = getTouchDistance(e.evt.touches);
+      const center = getTouchCenter(e.evt.touches);
+      lastTouchDistance.current = distance;
+      lastTouchCenter.current = center;
+      isPanning.current = false; // Disable panning during pinch
+      e.evt.preventDefault();
+    } else if (e.evt.touches.length === 1 && !activeData) {
+      // Start single-finger panning (only if not interacting with tiles)
+      const touch = e.evt.touches[0];
+      const stage = e.target.getStage();
+      if (stage) {
+        const stageRect = stage.container().getBoundingClientRect();
+        lastPanPosition.current = {
+          x: touch.clientX - stageRect.left,
+          y: touch.clientY - stageRect.top
+        };
+        isPanning.current = true;
+        panStartTime.current = Date.now();
+        panVelocity.current = { x: 0, y: 0 };
+      }
+    }
+  };
+
+  const onMouseUp = (e: Konva.KonvaEventObject<MouseEvent | TouchEvent>) => {
     setActiveData(null);
     setRotateCursor(false);
-    removeCustomCursor(e);
+    
+    // Reset pinch gesture tracking
+    if (e.evt instanceof TouchEvent) {
+      lastTouchDistance.current = null;
+      lastTouchCenter.current = null;
+      isPanning.current = false;
+      lastPanPosition.current = null;
+      panStartTime.current = 0;
+      panVelocity.current = { x: 0, y: 0 };
+    }
+    
+    if (e.evt instanceof MouseEvent && !isTouchDevice) {
+      removeCustomCursor(e as Konva.KonvaEventObject<MouseEvent>);
+    }
   }
-  const onTileEnter = (e: Konva.KonvaEventObject<MouseEvent>, data: TileEventData) => {
-    if (!activeData && data.action === "rotate") {
+  const onTileEnter = (e: Konva.KonvaEventObject<MouseEvent | TouchEvent>, data: TileEventData) => {
+    if (!activeData && data.action === "rotate" && !isTouchDevice) {
       setRotateCursor(true);
-      setNoneCursor(e);
-      setTimeout(() => {
-        if (cursorRef.current) {
-          cursorRef.current.style = `left: ${e.evt.x}px; top: ${e.evt.y}px;`;
-        }
-      }, 10);
+      if (e.evt instanceof MouseEvent) {
+        setNoneCursor(e as Konva.KonvaEventObject<MouseEvent>);
+        setTimeout(() => {
+          if (cursorRef.current && e.evt instanceof MouseEvent) {
+            cursorRef.current.style = `left: ${e.evt.x}px; top: ${e.evt.y}px;`;
+          }
+        }, 10);
+      }
     }
 
-    if (!activeData && data.action === "resize-ns") {
+    if (!activeData && data.action === "resize-ns" && !isTouchDevice) {
       setRotateCursor(false);
-      setNsResizeCursor(e);
+      if (e.evt instanceof MouseEvent) {
+        setNsResizeCursor(e as Konva.KonvaEventObject<MouseEvent>);
+      }
     }
-    if (!activeData && data.action === "resize-ew") {
+    if (!activeData && data.action === "resize-ew" && !isTouchDevice) {
       setRotateCursor(false);
-      setEwResizeCursor(e);
+      if (e.evt instanceof MouseEvent) {
+        setEwResizeCursor(e as Konva.KonvaEventObject<MouseEvent>);
+      }
     }
-    if (!activeData && data.action === "move") {
+    if (!activeData && data.action === "move" && !isTouchDevice) {
       setRotateCursor(false);
-      setMoveCursor(e);
+      if (e.evt instanceof MouseEvent) {
+        setMoveCursor(e as Konva.KonvaEventObject<MouseEvent>);
+      }
     }
   }
-  const onTileLeave = (e: Konva.KonvaEventObject<MouseEvent>, data: TileEventData) => {
-    if (!activeData && data.action === "rotate") {
+  const onTileLeave = (e: Konva.KonvaEventObject<MouseEvent | TouchEvent>, data: TileEventData) => {
+    if (!activeData && data.action === "rotate" && !isTouchDevice) {
       setRotateCursor(false);
-      removeCustomCursor(e);
+      if (e.evt instanceof MouseEvent) {
+        removeCustomCursor(e as Konva.KonvaEventObject<MouseEvent>);
+      }
     }
-    if (!activeData && (data.action === "resize-ns" || data.action === "resize-ew")) {
+    if (!activeData && (data.action === "resize-ns" || data.action === "resize-ew") && !isTouchDevice) {
       setRotateCursor(false);
-      removeCustomCursor(e);
+      if (e.evt instanceof MouseEvent) {
+        removeCustomCursor(e as Konva.KonvaEventObject<MouseEvent>);
+      }
     }
 
-    if (!activeData && data.action === "move") {
+    if (!activeData && data.action === "move" && !isTouchDevice) {
       setRotateCursor(false);
-      removeCustomCursor(e);
+      if (e.evt instanceof MouseEvent) {
+        removeCustomCursor(e as Konva.KonvaEventObject<MouseEvent>);
+      }
     }
   }
-  const onMouseMove = (e: Konva.KonvaEventObject<MouseEvent>) => {
-    if (rotateCursor && cursorRef.current) {
+  const onMouseMove = (e: Konva.KonvaEventObject<MouseEvent | TouchEvent>) => {
+    if (rotateCursor && cursorRef.current && e.evt instanceof MouseEvent && !isTouchDevice) {
       cursorRef.current.style = `left: ${e.evt.x}px; top: ${e.evt.y}px;`;
+    }
+
+    // Handle single-finger touch panning
+    if (e.evt instanceof TouchEvent && e.evt.touches.length === 1 && isPanning.current && lastPanPosition.current && !activeData) {
+      const touch = e.evt.touches[0];
+      const stage = e.target.getStage();
+      if (stage) {
+        const stageRect = stage.container().getBoundingClientRect();
+        const currentX = touch.clientX - stageRect.left;
+        const currentY = touch.clientY - stageRect.top;
+        
+        // Calculate pan delta
+        const deltaX = currentX - lastPanPosition.current.x;
+        const deltaY = currentY - lastPanPosition.current.y;
+        
+        // Track velocity for smoother experience
+        const currentTime = Date.now();
+        const timeDelta = Math.max(currentTime - panStartTime.current, 1);
+        panVelocity.current = {
+          x: deltaX / timeDelta * 1000, // pixels per second
+          y: deltaY / timeDelta * 1000
+        };
+        
+        // Update pan offset with constraints
+        const canvasWidth = stage.width() || 0;
+        const canvasHeight = stage.height() || 0;
+        
+        setPanOffset(prev => {
+          const newOffset = {
+            x: prev.x + deltaX,
+            y: prev.y + deltaY
+          };
+          return constrainPanOffset(newOffset, canvasWidth, canvasHeight);
+        });
+        
+        // Update last position and time
+        lastPanPosition.current = { x: currentX, y: currentY };
+        panStartTime.current = currentTime;
+      }
+      e.evt.preventDefault();
+      return;
+    }
+
+    // Handle pinch zoom for touch devices
+    if (e.evt instanceof TouchEvent && e.evt.touches.length === 2 && lastTouchDistance.current && lastTouchCenter.current) {
+      // Disable panning during pinch
+      isPanning.current = false;
+      lastPanPosition.current = null;
+      
+      const currentDistance = getTouchDistance(e.evt.touches);
+      const currentCenter = getTouchCenter(e.evt.touches);
+      
+      if (currentDistance && currentCenter) {
+        // Calculate zoom change
+        const zoomChange = currentDistance / lastTouchDistance.current;
+        const newZoom = Math.min(Math.max(zoom * zoomChange, 0.5), 3); // Limit zoom between 0.5x and 3x
+        
+        // Calculate pan offset to zoom towards pinch center
+        const stage = e.target.getStage();
+        if (stage) {
+          const stageRect = stage.container().getBoundingClientRect();
+          const centerX = currentCenter.x - stageRect.left;
+          const centerY = currentCenter.y - stageRect.top;
+          
+          // Update zoom and pan
+          setZoom(newZoom);
+          
+          // Pan to keep the pinch center in the same position
+          const zoomRatio = newZoom / zoom;
+          const newPanX = panOffset.x + (centerX - panOffset.x) * (1 - zoomRatio);
+          const newPanY = panOffset.y + (centerY - panOffset.y) * (1 - zoomRatio);
+          setPanOffset({ x: newPanX, y: newPanY });
+        }
+        
+        lastTouchDistance.current = currentDistance;
+        lastTouchCenter.current = currentCenter;
+      }
+      e.evt.preventDefault();
+      return;
     }
     
     const position = getPosition(e) 
@@ -413,8 +581,9 @@ export const PatternEditor: React.FC<PatternEditorProps> = ({className, value, o
         
         if (activeData.tile.type === 'rectangle') {
           // For rectangles, use direct mouse movement distance with reduced sensitivity
-          const dx = (position.x - initialPosition.current!.x) * 0.25;
-          const dy = (position.y - initialPosition.current!.y) * 0.25;
+          const sensitivity = isTouchDevice ? 0.5 : 0.25; // Increased sensitivity for touch
+          const dx = (position.x - initialPosition.current!.x) * sensitivity;
+          const dy = (position.y - initialPosition.current!.y) * sensitivity;
           
           if (activeData.action === 'resize-ew') {
             // Horizontal resize - move left and right edges by dx/2 each
@@ -441,16 +610,18 @@ export const PatternEditor: React.FC<PatternEditorProps> = ({className, value, o
           
           if (activeData.action === 'resize-ew') {
             // Use horizontal movement for uniform scaling with reduced sensitivity
+            const sensitivity = isTouchDevice ? 0.5 : 0.25; // Increased sensitivity for touch
             const initialDist = initialPosition.current!.x - center[0];
-            const mouseMovement = (position.x - initialPosition.current!.x) * 0.25;
+            const mouseMovement = (position.x - initialPosition.current!.x) * sensitivity;
             const currentDist = initialDist + mouseMovement;
             if (initialDist !== 0) {
               scale = currentDist / initialDist;
             }
           } else if (activeData.action === 'resize-ns') {
             // Use vertical movement for uniform scaling with reduced sensitivity
+            const sensitivity = isTouchDevice ? 0.5 : 0.25; // Increased sensitivity for touch
             const initialDist = initialPosition.current!.y - center[1];
-            const mouseMovement = (position.y - initialPosition.current!.y) * 0.25;
+            const mouseMovement = (position.y - initialPosition.current!.y) * sensitivity;
             const currentDist = initialDist + mouseMovement;
             if (initialDist !== 0) {
               scale = currentDist / initialDist;
@@ -477,7 +648,7 @@ export const PatternEditor: React.FC<PatternEditorProps> = ({className, value, o
       let dy = position.y - initialPosition.current.y;
       const movedPoints = tile.points.map<Point>(point => [point[0] + dx, point[1] + dy]);
       // --- Snapping logic (edge-to-edge) ---
-      const SNAP_THRESHOLD = 4; // px
+      const SNAP_THRESHOLD = isTouchDevice ? 8 : 4; // Increased threshold for touch devices
       let snapDx = 0;
       let snapDy = 0;
       // Get bounding box for moved tile
@@ -586,7 +757,7 @@ export const PatternEditor: React.FC<PatternEditorProps> = ({className, value, o
       if (tile) {
         const newTile = {
           ...tile,
-          id: self.crypto.randomUUID(),
+          id: uuid(),
           points: tile.points.map<Point>(point => [
             point[0] + 10,
             point[1] + 10
@@ -656,13 +827,39 @@ export const PatternEditor: React.FC<PatternEditorProps> = ({className, value, o
       moveTileRight: () => moveTile('right'),
     }
   }, [edited])
+
+  const resetZoom = () => {
+    setZoom(1);
+    setPanOffset({ x: 0, y: 0 });
+  };
+
+  const zoomIn = () => {
+    setZoom(prev => Math.min(prev * 1.2, 3));
+  };
+
+  const zoomOut = () => {
+    setZoom(prev => Math.max(prev / 1.2, 0.5));
+  };
+
+  const constrainPanOffset = (offset: { x: number, y: number }, canvasWidth: number, canvasHeight: number) => {
+    // Allow some extra panning beyond the canvas boundaries for better UX
+    const maxPanX = canvasWidth * 0.5;
+    const maxPanY = canvasHeight * 0.5;
+    const minPanX = -canvasWidth * 0.5;
+    const minPanY = -canvasHeight * 0.5;
+    
+    return {
+      x: Math.max(minPanX, Math.min(maxPanX, offset.x)),
+      y: Math.max(minPanY, Math.min(maxPanY, offset.y))
+    };
+  };
   
 
   const [preview, setPreview] = useState<boolean>(() => pattern.tiles.length > 0);
 
   return (
-    <div className="bg-black/25 absolute top-0 left-0 w-full h-full z-20 p-4">
-      <div className={classMerge("bg-gray-100 shadow-md rounded-lg flex flex-col flex-nowrap gap-4 p-4 w-full h-full relative", className)}>
+    <div className="bg-black/25 absolute top-0 left-0 w-full h-full z-20 p-0 md:p-4">
+      <div className={classMerge("bg-gray-100 shadow-md rounded-none md:rounded-lg flex flex-col flex-nowrap gap-4 p-2 md:p-4 w-full h-full relative", className)}>
         <div className="flex justify-between">
           <h1 className="text-2xl font-bold text-black">{t('planner.patternEditor.title')}</h1>
           <Tooltip 
@@ -681,48 +878,87 @@ export const PatternEditor: React.FC<PatternEditorProps> = ({className, value, o
                 pattern={readyPattern.pattern}
                 displayScale={readyPattern.displayScale}
                 onClick={(p) => {
-                  setPattern({...p, tiles: p.tiles.map(t => ({...t, id: self.crypto.randomUUID() }))});
+                  setPattern({...p, tiles: p.tiles.map(t => ({...t, id: uuid() }))});
                 }}
               />))}
           </div>
         </div>
         <div className="relative grow flex flex-col">
-          <div className="absolute z-10 left-1/2 top-2 -translate-x-1/2 flex items-center bg-gray-100 shadow-md p-1 space-x-2 rounded-lg">
+          <div className={classMerge(
+            "absolute z-10 top-2 flex items-center bg-gray-100 shadow-md p-1 space-x-2 rounded-lg",
+              "left-1/2 -translate-x-1/2 flex-row" // Desktop: horizontal centered
+          )}>
             <Tooltip 
               text={t('planner.patternEditor.addTriangle')}
               position="bottom"
+              disabled={isTouchDevice}
               component={ref => 
-                <ToolbarButton ref={ref} onClick={() => addTriangle()} icon={<Triangle />} />
+                <ToolbarButton 
+                  ref={ref} 
+                  onClick={() => addTriangle()} 
+                  icon={<Triangle />} 
+                  className="w-10 h-10 md:w-auto md:h-auto"
+                />
               } />
             <Tooltip 
               text={t('planner.patternEditor.addRectangleHorizontal')}
               position="bottom"
+              disabled={isTouchDevice}
               component={ref => 
-                <ToolbarButton ref={ref} onClick={() => addRectangleHorizontal()} icon={<RectangleHorizontal />} />
+                <ToolbarButton 
+                  ref={ref} 
+                  onClick={() => addRectangleHorizontal()} 
+                  icon={<RectangleHorizontal />} 
+                  className="w-10 h-10 md:w-auto md:h-auto"
+                />
               } />
             <Tooltip 
               text={t('planner.patternEditor.addRectangleVertical')}
               position="bottom"
+              disabled={isTouchDevice}
               component={ref => 
-                <ToolbarButton ref={ref} onClick={() => addRectangleVertical()} icon={<RectangleVertical />} />
+                <ToolbarButton 
+                  ref={ref} 
+                  onClick={() => addRectangleVertical()} 
+                  icon={<RectangleVertical />} 
+                  className="w-10 h-10 md:w-auto md:h-auto"
+                />
               } />
             <Tooltip 
               text={t('planner.patternEditor.addSquare')}
               position="bottom"
+              disabled={isTouchDevice}
               component={ref => 
-                <ToolbarButton ref={ref} onClick={() => addSquare()} icon={<Square />} />
+                <ToolbarButton 
+                  ref={ref} 
+                  onClick={() => addSquare()} 
+                  icon={<Square />} 
+                  className="w-10 h-10 md:w-auto md:h-auto"
+                />
               } />
             <Tooltip 
               text={t('planner.patternEditor.addDiamond')}
               position="bottom"
+              disabled={isTouchDevice}
               component={ref => 
-                <ToolbarButton ref={ref} onClick={() => addDiamond()} icon={<Diamond />} />
+                <ToolbarButton 
+                  ref={ref} 
+                  onClick={() => addDiamond()} 
+                  icon={<Diamond />} 
+                  className="w-10 h-10 md:w-auto md:h-auto"
+                />
               } />
             <Tooltip 
               text={t('planner.patternEditor.addHexagon')}
               position="bottom"
+              disabled={isTouchDevice}
               component={ref => 
-                <ToolbarButton ref={ref} onClick={() => addHexagon()} icon={<Hexagon />} />
+                <ToolbarButton 
+                  ref={ref} 
+                  onClick={() => addHexagon()} 
+                  icon={<Hexagon />} 
+                  className="w-10 h-10 md:w-auto md:h-auto"
+                />
               } />
           </div>
           <div className="grow">
@@ -731,11 +967,15 @@ export const PatternEditor: React.FC<PatternEditorProps> = ({className, value, o
               pattern={pattern}
               height={dimensions.height}
               width={dimensions.width}
+              zoom={zoom}
+              panOffset={panOffset}
               isDragging={activeData !== null}
               selectedId={edited}
+              isTouchDevice={isTouchDevice}
               onStageClick={onBackgroundClick}
               onStageMouseMove={onMouseMove}
               onStageMouseUp={onMouseUp}
+              onStageTouchStart={onTouchStart}
               onTileClick={onTileClick}
               onTileDown={onTileDown}
               onTileEnter={onTileEnter}
@@ -743,32 +983,114 @@ export const PatternEditor: React.FC<PatternEditorProps> = ({className, value, o
             />
             } />
           </div>
-          <div className="absolute bottom-3 left-1/2 -translate-x-1/2 flex gap-1 items-center justify-center px-4 bg-gray-100 shadow-md p-1 space-x-2 rounded-lg">
-              <RulerDimensionLine className="text-black" />
-              <input type="number" min={0} step={1} disabled={!pattern.tiles.length} className="w-20 h-8 text-black text-center border border-black rounded-md bg-gray-100" value={pattern.width * (pattern.scale * 10)} onChange={e => setPattern(c=> ({...c, width: e.target.valueAsNumber / (pattern.scale * 10)}))} />
+          <div className={classMerge(
+            "absolute flex gap-1 items-center justify-center px-4 bg-gray-100 shadow-md p-1 space-x-2 rounded-lg",
+            "bottom-2 left-2 right-2 flex-wrap", // Touch: full width at bottom
+            "md:bottom-3 md:left-1/2 md:right-auto md:-translate-x-1/2 md:flex-nowrap" // Desktop: centered
+          )}>
+              <RulerDimensionLine className="text-black md:block hidden" />
+              <input 
+                type="number" 
+                min={0} 
+                step={1} 
+                disabled={!pattern.tiles.length} 
+                className={classMerge(
+                  "text-black text-center border border-black rounded-md bg-gray-100",
+                  "w-16 h-10 md:w-20 md:h-8"
+                )}
+                value={pattern.width * (pattern.scale * 10)} 
+                onChange={e => setPattern(c=> ({...c, width: e.target.valueAsNumber / (pattern.scale * 10)}))} 
+              />
               <span className="text-black">x</span>
-              <input type="number" min={0} step={1} disabled={!pattern.tiles.length} className="w-20 h-8 text-black text-center border border-black rounded-md bg-gray-100" value={pattern.height * (pattern.scale * 10)} onChange={e => setPattern(c=> ({...c, height: e.target.valueAsNumber / (pattern.scale * 10)}))} />
+              <input 
+                type="number" 
+                min={0} 
+                step={1} 
+                disabled={!pattern.tiles.length} 
+                className={classMerge(
+                  "text-black text-center border border-black rounded-md bg-gray-100",
+                  "w-16 h-10 md:w-20 md:h-8"
+                )}
+                value={pattern.height * (pattern.scale * 10)} 
+                onChange={e => setPattern(c=> ({...c, height: e.target.valueAsNumber / (pattern.scale * 10)}))} 
+              />
               <span className="text-black">{t('planner.measurements.mm')}</span>
+              <Tooltip 
+                text={t('planner.patternEditor.zoomOut')}
+                position="top"
+                disabled={isTouchDevice}
+                component={ref => 
+                  <ToolbarButton 
+                    ref={ref} 
+                    onClick={zoomOut} 
+                    icon={<ZoomOut />}
+                    className={"w-10 h-10 md:w-auto md:h-auto"}
+                  />
+                } />
+              <Tooltip 
+                text={t('planner.patternEditor.zoomIn')}
+                position="top"
+                disabled={isTouchDevice}
+                component={ref => 
+                  <ToolbarButton 
+                    ref={ref} 
+                    onClick={zoomIn} 
+                    icon={<ZoomIn />}
+                    className={"w-10 h-10 md:w-auto md:h-auto"}
+                  />
+                } />
+              <Tooltip 
+                text={t('planner.patternEditor.resetZoom')}
+                position="top"
+                disabled={isTouchDevice}
+                component={ref => 
+                  <ToolbarButton 
+                    ref={ref} 
+                    onClick={resetZoom} 
+                    icon={<ResetZoom />}
+                    className={"w-10 h-10 md:w-auto md:h-auto"}
+                  />
+                } />
               <Tooltip 
                 text={t('planner.patternEditor.togglePreview')}
                 position="top"
+                disabled={isTouchDevice}
                 component={ref => 
-                  <ToolbarButton ref={ref} onClick={() => setPreview(c => !c)} icon={preview ? <EyeOff /> : <Eye/>}/>
+                  <ToolbarButton 
+                    ref={ref} 
+                    onClick={() => setPreview(c => !c)} 
+                    icon={preview ? <EyeOff /> : <Eye/>}
+                    className={"w-10 h-10 md:w-auto md:h-auto"}
+                  />
                 } />
           </div>
           {edited && (
-            <div className="absolute z-10 left-2 top-5 bg-gray-100 shadow-md p-1 rounded-lg flex flex-col gap-1 items-center justify-center">
+            <div className={classMerge(
+              "absolute z-10 bg-gray-100 shadow-md p-1 rounded-lg flex gap-1 items-center justify-center",
+              isTouchDevice
+                ? "left-2 top-20 flex-col w-12" // Touch: vertical layout below main toolbar
+                : "left-2 top-5 flex-col" // Desktop: vertical on left
+            )}>
               <input 
                 type="color" 
                 value={pattern.tiles.find(t => t.id === edited)?.color} 
                 onChange={e => setPattern(c=> ({...c, tiles: c.tiles.map(t => t.id === edited ? {...t, color: e.target.value } : t)}))} 
-                className="w-full h-9 m-0 p-0 rounded-md border border-solid border-black cursor-pointer hover:text-red-800 hover:bg-gray-200" 
+                className={classMerge(
+                  "m-0 p-0 rounded-md border border-solid border-black cursor-pointer hover:text-red-800 hover:bg-gray-200",
+                  "w-10 h-10 md:w-full md:h-9"
+                )} 
               />
               <Tooltip 
                 text={t('planner.patternEditor.duplicateTile')}
                 position="right"
+                disabled={isTouchDevice}
                 component={ref => 
-                  <ToolbarButton ref={ref} onClick={duplicateTile} icon={<Copy />} />
+                  <ToolbarButton 
+                    ref={ref} 
+                    onClick={duplicateTile} 
+                    icon={<Copy />} 
+                    className={"w-10 h-10 md:w-auto md:h-auto"}
+                  />
                 } />
               <CursorArrows 
                 onDown={moveTileDown}
@@ -779,16 +1101,31 @@ export const PatternEditor: React.FC<PatternEditorProps> = ({className, value, o
               <Tooltip 
                 text={t('planner.patternEditor.deleteTile')}
                 position="right"
+                disabled={isTouchDevice}
                 component={ref => 
-                  <ToolbarButton ref={ref} variant="danger" onClick={removeTile} icon={<Trash2 />} />
+                  <ToolbarButton 
+                    ref={ref} 
+                    variant="danger" 
+                    onClick={removeTile} 
+                    icon={<Trash2 />} 
+                    className={"w-10 h-10 md:w-auto md:h-auto"}
+                  />
                 } />
             </div>
           )}
-          {rotateCursor && <RotateCcw className="fixed text-black -translate-1/2 pointer-events-none" ref={cursorRef}  />}
+          {rotateCursor && !isTouchDevice && <RotateCcw className="fixed text-black -translate-1/2 pointer-events-none" ref={cursorRef}  />}
         </div>
-        <div className="flex justify-end gap-3">
-          <ToolbarButton label={t('planner.patternEditor.cancel')} onClick={onClose}/>
-          <ToolbarButton label={t('planner.patternEditor.save')} icon={<CircleCheck className="text-green-800 size-5"/>} onClick={() => onSubmit?.(pattern)} className="border border-black"/>
+        <div className={"flex justify-end gap-3"}>
+          <ToolbarButton 
+            label={t('planner.patternEditor.cancel')} 
+            onClick={onClose}
+          />
+          <ToolbarButton 
+            label={t('planner.patternEditor.save')} 
+            icon={<CircleCheck className="text-green-800 size-5"/>} 
+            onClick={() => onSubmit?.(pattern)} 
+            className={"border border-black"}
+          />
         </div>
       </div>
     </div>

@@ -24,4 +24,94 @@ body {
   background: var(--background);
   color: var(--foreground);
   font-family: Roboto,Arial, Helvetica, sans-serif;
+  /* Ensure body doesn't exceed viewport */
+  overflow-x: hidden;
+  position: relative;
+}
+
+/* Touch-friendly styles */
+@media (pointer: coarse) {
+  /* Ensure proper touch target spacing */
+  .toolbar-button {
+    padding: 12px;
+    margin: 4px;
+  }
+  
+  /* Prevent text selection during touch interactions */
+  .konvajs-content {
+    -webkit-touch-callout: none;
+    -webkit-user-select: none;
+    -khtml-user-select: none;
+    -moz-user-select: none;
+    -ms-user-select: none;
+    user-select: none;
+    -webkit-tap-highlight-color: transparent;
+  }
+}
+
+/* Ensure canvas is properly sized for mobile */
+canvas {
+  touch-action: manipulation;
+}
+
+/* Prevent pull-to-refresh and page zooming on planner page */
+.planner-page {
+  /* Disable pull-to-refresh */
+  overscroll-behavior: none;
+  /* Prevent page zoom */
+  touch-action: pan-x pan-y;
+  /* Ensure no scrolling on the planner container */
+  overflow: hidden;
+  /* Use visible viewport height instead of full screen height */
+  height: 100vh;
+  height: 100svh; /* Small viewport height for mobile browsers */
+  /* Ensure planner stays within visible bounds */
+  position: relative;
+  max-height: 100vh;
+  max-height: 100svh;
+}
+
+/* Additional touch controls for the planner stage */
+.planner-stage {
+  /* Prevent default touch behaviors that could interfere */
+  -webkit-touch-callout: none;
+  -webkit-user-select: none;
+  -khtml-user-select: none;
+  -moz-user-select: none;
+  -ms-user-select: none;
+  user-select: none;
+  -webkit-tap-highlight-color: transparent;
+  /* Control touch actions specifically */
+  touch-action: none;
+}
+
+/* Prevent zoom on input fields within planner */
+.planner-page input {
+  font-size: 16px; /* Prevents zoom on iOS */
+}
+
+/* Mobile browser chrome handling */
+@supports (height: 100svh) {
+  .planner-page {
+    height: 100svh !important;
+    max-height: 100svh !important;
+  }
+}
+
+/* Fallback for browsers without svh support */
+@supports not (height: 100svh) {
+  .planner-page {
+    height: 100vh;
+    max-height: 100vh;
+  }
+}
+
+/* Safe area handling for devices with notches */
+@supports (padding: max(0px)) {
+  .planner-page {
+    padding-left: env(safe-area-inset-left);
+    padding-right: env(safe-area-inset-right);
+    padding-top: env(safe-area-inset-top);
+    padding-bottom: env(safe-area-inset-bottom);
+  }
 }

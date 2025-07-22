@@ -99,6 +99,9 @@
       "addDiamond": "Add diamond",
       "addHexagon": "Add hexagon",
       "togglePreview": "Toggle preview",
+      "zoomIn": "Zoom In",
+      "zoomOut": "Zoom Out", 
+      "resetZoom": "Reset Zoom",
       "duplicateTile": "Duplicate tile",
       "deleteTile": "Delete tile",
       "close": "Close"

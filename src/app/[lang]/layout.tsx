@@ -1,4 +1,4 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import "../globals.css";
 import { I18nProvider } from '@/components/I18nProvider';
@@ -36,9 +36,19 @@ export async function generateMetadata({ params }: { params: Promise<{ lang: str
     applicationName: "HandyLay",
     other: {
       "apple-mobile-web-app-title": "HandyLay",
+      "apple-mobile-web-app-capable": "yes",
+      "apple-mobile-web-app-status-bar-style": "default",
     }
   };
 }
+
+export const viewport: Viewport = {
+  width: "device-width",
+  initialScale: 1,
+  maximumScale: 5,
+  userScalable: true,
+  viewportFit: "cover",
+};
 
 export default async function LocaleLayout({ children, params }: Props) {
   const { lang } = await params;

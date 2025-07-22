@@ -14,19 +14,23 @@ interface PatternCanvasProps {
   preview?: boolean;
   selectedId?: string | null;
   isDragging?: boolean;
-  onStageClick?: (evt: Konva.KonvaEventObject<MouseEvent>) => void;
-  onStageMouseMove?: (evt: Konva.KonvaEventObject<MouseEvent>) => void;
-  onStageMouseUp?: (evt: Konva.KonvaEventObject<MouseEvent>) => void;
-  onTileClick?: (evt: Konva.KonvaEventObject<MouseEvent>, id: string) => void;
-  onTileDown?: (evt: Konva.KonvaEventObject<MouseEvent>, data: TileEventData) => void;
-  onTileEnter?: (evt: Konva.KonvaEventObject<MouseEvent>, data: TileEventData) => void;
-  onTileLeave?: (evt: Konva.KonvaEventObject<MouseEvent>, data: TileEventData) => void;
+  isTouchDevice?: boolean;
+  zoom?: number;
+  panOffset?: { x: number, y: number };
+  onStageClick?: (evt: Konva.KonvaEventObject<MouseEvent | TouchEvent>) => void;
+  onStageMouseMove?: (evt: Konva.KonvaEventObject<MouseEvent | TouchEvent>) => void;
+  onStageMouseUp?: (evt: Konva.KonvaEventObject<MouseEvent | TouchEvent>) => void;
+  onStageTouchStart?: (evt: Konva.KonvaEventObject<TouchEvent>) => void;
+  onTileClick?: (evt: Konva.KonvaEventObject<MouseEvent | TouchEvent>, id: string) => void;
+  onTileDown?: (evt: Konva.KonvaEventObject<MouseEvent | TouchEvent>, data: TileEventData) => void;
+  onTileEnter?: (evt: Konva.KonvaEventObject<MouseEvent | TouchEvent>, data: TileEventData) => void;
+  onTileLeave?: (evt: Konva.KonvaEventObject<MouseEvent | TouchEvent>, data: TileEventData) => void;
 }
 
 type StageNodeRef = Required<React.ComponentProps<typeof Stage>>['ref'];
 
-const PatternCanvasComponent = ({ width, height, pattern, selectedId, isDragging, preview, ...events }: PatternCanvasProps, ref: StageNodeRef) => {
-  const { onStageClick, onStageMouseMove, onStageMouseUp, onTileClick, onTileDown, onTileEnter, onTileLeave } = events;
+const PatternCanvasComponent = ({ width, height, pattern, selectedId, isDragging, preview, isTouchDevice, zoom = 1, panOffset = { x: 0, y: 0 }, ...events }: PatternCanvasProps, ref: StageNodeRef) => {
+  const { onStageClick, onStageMouseMove, onStageMouseUp, onStageTouchStart, onTileClick, onTileDown, onTileEnter, onTileLeave } = events;
   const [background, setBackground] = React.useState<HTMLImageElement | undefined>(() => {
     return createPatternCanvas();
   });
@@ -49,29 +53,42 @@ const PatternCanvasComponent = ({ width, height, pattern, selectedId, isDragging
   }, [pattern, preview]);
 
 
+  const rectWidth = width / zoom;
+  const rectHeight = height / zoom;
 
   return (
   <Stage 
     ref={ref}
     className="w-full border border-solid border-black rounded-2xl overflow-hidden" 
-    style={{width, height}} height={height} width={width}
-    onClick={onStageClick}
-    onMouseMove={onStageMouseMove}
-    onMouseUp={onStageMouseUp}>
+    style={{width, height}} 
+    height={height} 
+    width={width}
+    scaleX={zoom}
+    scaleY={zoom}
+    x={panOffset.x}
+    y={panOffset.y}
+    onClick={!isTouchDevice ? onStageClick : undefined}
+    onMouseMove={!isTouchDevice ? onStageMouseMove : undefined}
+    onMouseUp={!isTouchDevice ? onStageMouseUp : undefined}
+    onTouchMove={isTouchDevice ? onStageMouseMove : undefined}
+    onTouchEnd={isTouchDevice ? onStageMouseUp : undefined}
+    onTouchStart={isTouchDevice ? onStageTouchStart : undefined}
+    onTap={onStageClick}
+    listening={true}>
     <Layer >
       <Rect 
-        x={0} y={0}
+        x={-rectWidth/2} y={-rectHeight/2}
         listening={false}
-        width={width}
-        height={height} 
+        width={rectWidth * 2}
+        height={rectHeight * 2}
         fillPatternImage={background}
         fillPatternRepeat="repeat"
-        fillPatternY={height/2 - pattern.height/2}
-        fillPatternX={width/2 - pattern.width/2}
+        fillPatternY={rectHeight - pattern.height / 2}
+        fillPatternX={rectWidth - pattern.width / 2}
         // fillPatternRotation={Math.PI / 4}
         // fillRule="evenodd"
          /> 
-        <Group x={width/2 - pattern.width/2} y={height/2 - pattern.height/2}>
+        <Group x={rectWidth/2 - pattern.width / 2} y={rectHeight/2 - pattern.height / 2}>
           <Rect 
             x={0} y={0}
             width={pattern.width}
@@ -89,6 +106,7 @@ const PatternCanvasComponent = ({ width, height, pattern, selectedId, isDragging
                 scale={pattern.scale / 100}
                 isSelected={selectedId === tile.id}
                 isDragging={isDragging}
+                isTouchDevice={isTouchDevice}
                 onClick={onTileClick}
                 gapColor={pattern.gapColor}
                 gapSize={pattern.tilesGap}

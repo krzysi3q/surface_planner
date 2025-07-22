@@ -3,12 +3,14 @@ import React, { useMemo, useRef } from "react";
 import type { SurfaceType, Point, Pattern } from "./types";
 import { Download, Hand, PencilRuler, Redo, Save, SplinePointer, SquaresSubtract, SquaresUnite, Trash2, Undo, Upload, Waypoints, ZoomIn, ZoomOut } from 'lucide-react'
 import { RightAngle } from "@/components/Icons/RightAngle";
+import { v4 as uuid} from 'uuid'
 
 import Konva from "konva";
 
 import { useHistoryState } from "@/hooks/useHistoryState";
 import { useTranslation } from "@/hooks/useTranslation";
-import { subtractSurfaces, unionSurfaces, isSurfaceIntersecting, saveToLocalStorage, loadFromLocalStorage, getAngles, getSurfaceArea, doSurfacesIntersect, adjustSurfaceForWallChange } from "./utils";
+import { useTouchDevice } from "@/hooks/useTouchDevice";
+import { subtractSurfaces, unionSurfaces, isSurfaceIntersecting, saveToLocalStorage, loadFromLocalStorage, getAngles, getSurfaceArea, doSurfacesIntersect, adjustSurfaceForWallChange, toClockwise } from "./utils";
 import { removeCustomCursor, setGrabbingCursor } from "./domUtils"
 import EdgeEdit from "./EdgeEdit";
 import { MoveHandler } from "./MoveHandler";
@@ -24,6 +26,7 @@ import { PatternEditor } from "./PatternEditor/PatternEditor";
 import { ResizePlanner } from "./ResizePlanner";
 import { CursorArrows } from "../CursorArrows";
 import { Tooltip } from "../Tooltip";
+import { TouchInstructions } from "../TouchInstructions";
 
 type TemporarySurface = SurfaceType & {
   state: "error" | "valid";
@@ -113,7 +116,8 @@ const useDragStage = (setSurface: ReturnType<typeof useHistoryState<{id: string,
 
 export const Planner: React.FC<PlannerProps> = ({ width, height }) => {
   const { t } = useTranslation();
-  const { state: surface, set: setSurface, undo, redo, persist, canUndo, canRedo } = useHistoryState<{id: string, points: Point[], pattern: Pattern}>(loadFromLocalStorage('surface') || { id: self.crypto.randomUUID(), points: [], pattern: defaultPattern });
+  const isTouchDevice = useTouchDevice();
+  const { state: surface, set: setSurface, undo, redo, persist, canUndo, canRedo } = useHistoryState<{id: string, points: Point[], pattern: Pattern}>(loadFromLocalStorage('surface') || { id: uuid(), points: [], pattern: defaultPattern });
   const [ surfaceEditorOpen, setSurfaceEditorOpen ] = React.useState<boolean>(false);
   const [keepRightAngles, setKeepRightAngles] = React.useState<boolean>(true);
   const stageRef = React.useRef<Konva.Stage>(null);
@@ -126,28 +130,136 @@ export const Planner: React.FC<PlannerProps> = ({ width, height }) => {
   // State for wall drawing mode
   const [drawingPoints, setDrawingPoints] = React.useState<Point[]>([]);
   const [currentMousePos, setCurrentMousePos] = React.useState<Point | null>(null);
-  const [lastClickTime, setLastClickTime] = React.useState<number>(0);
+  const [isDrawingWall, setIsDrawingWall] = React.useState<boolean>(false);
+  const [currentWallStart, setCurrentWallStart] = React.useState<Point | null>(null);
+
+  // Touch-specific state for pinch zoom
+  const [initialPinchDistance, setInitialPinchDistance] = React.useState<number | null>(null);
+  const [initialScale, setInitialScale] = React.useState<number>(100);
+  
+  // Touch-specific state for pan gestures
+  const [initialTouchCenter, setInitialTouchCenter] = React.useState<{ x: number; y: number } | null>(null);
+  const [isPanning, setIsPanning] = React.useState<boolean>(false);
+
+  // Handle pinch zoom for touch devices
+  const handleTouchStart = (e: Konva.KonvaEventObject<TouchEvent>) => {
+    const touches = e.evt.touches;
+    if (touches.length === 2) {
+      // Start pinch gesture
+      const touch1 = touches[0];
+      const touch2 = touches[1];
+      const distance = Math.sqrt(
+        Math.pow(touch2.clientX - touch1.clientX, 2) + 
+        Math.pow(touch2.clientY - touch1.clientY, 2)
+      );
+      setInitialPinchDistance(distance);
+      setInitialScale(globalScale);
+      
+      // Also set initial center for panning
+      const centerX = (touch1.clientX + touch2.clientX) / 2;
+      const centerY = (touch1.clientY + touch2.clientY) / 2;
+      setInitialTouchCenter({ x: centerX, y: centerY });
+      setIsPanning(true);
+    } else if (touches.length === 1) {
+      // Single touch - handle as mouse down but prevent duplicate calls
+      e.evt.preventDefault();
+      handleMouseDown(e);
+    }
+  };
+
+  const handleTouchMove = (e: Konva.KonvaEventObject<TouchEvent>) => {
+    const touches = e.evt.touches;
+    if (touches.length === 2 && initialPinchDistance !== null && initialTouchCenter !== null) {
+      // Handle pinch zoom and pan
+      e.evt.preventDefault();
+      const touch1 = touches[0];
+      const touch2 = touches[1];
+      
+      // Calculate zoom
+      const currentDistance = Math.sqrt(
+        Math.pow(touch2.clientX - touch1.clientX, 2) + 
+        Math.pow(touch2.clientY - touch1.clientY, 2)
+      );
+      const scale = (currentDistance / initialPinchDistance) * initialScale;
+      const clampedScale = Math.max(10, Math.min(300, scale));
+      setGlobalScale(Math.round(clampedScale / 10) * 10);
+
+      // Calculate pan if we're panning
+      if (isPanning) {
+        const currentCenterX = (touch1.clientX + touch2.clientX) / 2;
+        const currentCenterY = (touch1.clientY + touch2.clientY) / 2;
+        
+        const dx = (currentCenterX - initialTouchCenter.x) / (globalScale / 100);
+        const dy = (currentCenterY - initialTouchCenter.y) / (globalScale / 100);
+        
+        // Update surface position
+        setSurface((current) => ({
+          ...current,
+          pattern: {
+            ...current.pattern,
+            x: current.pattern.x + dx,
+            y: current.pattern.y + dy,
+          },
+          points: current.points.map(pt => [pt[0] + dx, pt[1] + dy]),
+        }));
+        
+        // Update the center for next move calculation
+        setInitialTouchCenter({ x: currentCenterX, y: currentCenterY });
+      }
+    } else if (touches.length === 1) {
+      // Single touch - handle as mouse move
+      handleMouseMove(e);
+    }
+  };
+
+  const handleTouchEnd = (e: Konva.KonvaEventObject<TouchEvent>) => {
+    const touches = e.evt.touches;
+    if (touches.length < 2) {
+      // End pinch gesture and panning
+      setInitialPinchDistance(null);
+      setInitialScale(globalScale);
+      setInitialTouchCenter(null);
+      setIsPanning(false);
+    }
+    
+    if (touches.length === 0) {
+      // All touches ended - handle as mouse up
+      handleMouseUp(e);
+    }
+  };
 
   // Reset drawing state when mode changes
   React.useEffect(() => {
     if (state.mode !== 'draw-walls') {
       setDrawingPoints([]);
       setCurrentMousePos(null);
+      setIsDrawingWall(false);
+      setCurrentWallStart(null);
     }
   }, [state.mode]);
 
   // Handle escape key to cancel drawing
   React.useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.key === 'Escape' && state.mode === 'draw-walls' && drawingPoints.length > 0) {
-        setDrawingPoints([]);
-        setCurrentMousePos(null);
+      if (e.key === 'Escape' && state.mode === 'draw-walls') {
+        if (isDrawingWall) {
+          // Cancel current wall being drawn - return to previous end point
+          setIsDrawingWall(false);
+          const lastPoint = drawingPoints.length > 0 ? drawingPoints[drawingPoints.length - 1] : null;
+          setCurrentWallStart(lastPoint);
+          setCurrentMousePos(lastPoint);
+        } else if (drawingPoints.length > 0) {
+          // Cancel entire drawing session
+          setDrawingPoints([]);
+          setCurrentMousePos(null);
+          setCurrentWallStart(null);
+        }
       }
     };
 
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [state.mode, drawingPoints.length]);
+  }, [state.mode, drawingPoints.length, isDrawingWall, drawingPoints]);
 
   // Helper function to calculate distance between two points
   const getDistance = (point1: Point, point2: Point): number => {
@@ -159,12 +271,21 @@ export const Planner: React.FC<PlannerProps> = ({ width, height }) => {
   // Helper function to check if drawing should be completed
   const shouldCompleteDrawing = (currentPos: Point, points: Point[]): boolean => {
     if (points.length < 3) return false;
-    return getDistance(currentPos, points[0]) <= CLOSE_POLYGON_THRESHOLD;
+    const threshold = isTouchDevice ? CLOSE_POLYGON_THRESHOLD * 2 : CLOSE_POLYGON_THRESHOLD;
+    return getDistance(currentPos, points[0]) <= threshold;
   };
 
   const handleStageClick = (e: Konva.KonvaEventObject<MouseEvent>) => {
     if (state.editable && typeof e.target.attrs.id !== "string") {
       dispatch({ type: 'default' });
+    }
+  }
+
+  const handleStageDoubleClick = () => {
+    if (state.mode === 'draw-walls' && drawingPoints.length >= 3) {
+      // Double-click to complete the polygon
+      console.log('Double-click detected, completing drawing');
+      completeWallDrawing();
     }
   }
 
@@ -248,13 +369,21 @@ export const Planner: React.FC<PlannerProps> = ({ width, height }) => {
       const stage = e.currentTarget.getStage();
       const pos = stage?.getPointerPosition();
       if (!pos) return;
+      
+      // Adjust for zoom scale
+      const scale = globalScale / 100;
+      const adjustedPos = {
+        x: pos.x / scale,
+        y: pos.y / scale
+      };
+      
       const id = Date.now().toString();
       // start rectangle polygon points (all corners at start)
       const points: [number, number][] = [
-        [pos.x, pos.y],
-        [pos.x, pos.y],
-        [pos.x, pos.y],
-        [pos.x, pos.y],
+        [adjustedPos.x, adjustedPos.y],
+        [adjustedPos.x, adjustedPos.y],
+        [adjustedPos.x, adjustedPos.y],
+        [adjustedPos.x, adjustedPos.y],
       ];
       const newSurface: TemporarySurface = { id, points, state: "valid", pattern: surface.pattern, idle: true };
       setCurrentSurface(newSurface);
@@ -263,28 +392,29 @@ export const Planner: React.FC<PlannerProps> = ({ width, height }) => {
       const pos = stage?.getPointerPosition();
       if (!pos) return;
       
-      const currentTime = Date.now();
-      const clickPos: Point = [pos.x, pos.y];
+      // Adjust for zoom scale
+      const scale = globalScale / 100;
+      const clickPos: Point = [pos.x / scale, pos.y / scale];
       
-      // Check for double-click/tap (within 500ms)
-      if (currentTime - lastClickTime < 500 && drawingPoints.length >= 3) {
-        // Double-click/tap: complete the polygon
-        console.log('Double-click detected, completing drawing');
+      // Check if clicking near start point to close polygon (larger threshold for touch)
+      const threshold = isTouchDevice ? CLOSE_POLYGON_THRESHOLD * 2 : CLOSE_POLYGON_THRESHOLD;
+      if (drawingPoints.length >= 3 && getDistance(clickPos, drawingPoints[0]) <= threshold) {
         completeWallDrawing();
         return;
       }
       
-      // Check if clicking near start point to close polygon
-      if (drawingPoints.length >= 3 && shouldCompleteDrawing(clickPos, drawingPoints)) {
-        console.log('Click near start point, completing drawing');
-        completeWallDrawing();
-        return;
+      // Start drawing a new wall
+      if (!isDrawingWall) {
+        setIsDrawingWall(true);
+        
+        // Use the end point of the previous wall as starting point, or click position for first wall
+        const startPoint = drawingPoints.length > 0 
+          ? drawingPoints[drawingPoints.length - 1] 
+          : clickPos;
+        
+        setCurrentWallStart(startPoint);
+        setCurrentMousePos(clickPos);
       }
-      
-      // Add new point to drawing
-      console.log('Adding new point to drawing');
-      setDrawingPoints(prev => [...prev, clickPos]);
-      setLastClickTime(currentTime);
     } else if (state.mode === 'preview') {
       if (e.evt instanceof MouseEvent) {
         setGrabbingCursor(e as Konva.KonvaEventObject<MouseEvent>);
@@ -298,10 +428,18 @@ export const Planner: React.FC<PlannerProps> = ({ width, height }) => {
       const stage = e.currentTarget.getStage();
       const pos = stage?.getPointerPosition();
       if (!pos) return;
+      
+      // Adjust for zoom scale
+      const scale = globalScale / 100;
+      const adjustedPos = {
+        x: pos.x / scale,
+        y: pos.y / scale
+      };
+      
       // update rectangle polygon points based on start and current
       const [x0, y0] = currentSurface.points[0];
-      const x1 = pos.x,
-        y1 = pos.y;
+      const x1 = adjustedPos.x,
+        y1 = adjustedPos.y;
       const points: Point[] = [
         [x0, y0],
         [x1, y0],
@@ -319,7 +457,13 @@ export const Planner: React.FC<PlannerProps> = ({ width, height }) => {
       const stage = e.currentTarget.getStage();
       const pos = stage?.getPointerPosition();
       if (!pos) return;
-      setCurrentMousePos([pos.x, pos.y]);
+      
+      // Adjust for zoom scale
+      const scale = globalScale / 100;
+      const mousePos: Point = [pos.x / scale, pos.y / scale];
+      
+      // Always update mouse position for preview
+      setCurrentMousePos(mousePos);
     }
   };
 
@@ -359,6 +503,35 @@ export const Planner: React.FC<PlannerProps> = ({ width, height }) => {
       }
       
       setCurrentSurface(null);
+    } else if (state.mode === 'draw-walls') {
+      if (isDrawingWall && currentWallStart && currentMousePos) {
+        // Complete the current wall
+        const wallEndPos = currentMousePos;
+        
+        // Check if the wall has minimum length
+        const minWallLength = 10;
+        if (getDistance(currentWallStart, wallEndPos) < minWallLength || isSurfaceIntersecting([...drawingPoints, currentWallStart, wallEndPos])) {
+          // Wall too short, cancel it
+          setIsDrawingWall(false);
+          setCurrentWallStart(drawingPoints.length > 0 ? drawingPoints[drawingPoints.length - 1] : null);
+          setCurrentMousePos(drawingPoints.length > 0 ? drawingPoints[drawingPoints.length - 1] : null);
+          return;
+        }
+        
+        // Add the wall to drawing points
+        if (drawingPoints.length === 0) {
+          // First wall - add both start and end points
+          setDrawingPoints([currentWallStart, wallEndPos]);
+        } else {
+          // Subsequent walls - add only the end point (start point is the last point of previous wall)
+          setDrawingPoints(prev => [...prev, wallEndPos]);
+        }
+        
+        // Prepare for next wall - the end of this wall becomes the start of the next wall
+        setCurrentWallStart(wallEndPos);
+        setIsDrawingWall(false);
+        setCurrentMousePos(wallEndPos);
+      }
     } else if (state.mode === 'preview') {
       if (e.evt instanceof MouseEvent) {
         removeCustomCursor(e as Konva.KonvaEventObject<MouseEvent>);
@@ -391,7 +564,7 @@ export const Planner: React.FC<PlannerProps> = ({ width, height }) => {
           // If union fails, just replace the surface
           setSurface((current) => ({
             ...current,
-            points: drawingPoints,
+            points: toClockwise(drawingPoints),
           }));
         }
       } catch (error) {
@@ -399,21 +572,23 @@ export const Planner: React.FC<PlannerProps> = ({ width, height }) => {
         // Fallback: just replace the surface
         setSurface((current) => ({
           ...current,
-          points: drawingPoints,
+          points: toClockwise(drawingPoints),
         }));
       }
     } else {
       // No existing surface, create new one
       setSurface({
-        id: self.crypto.randomUUID(),
-        points: drawingPoints,
+        id: uuid(),
+        points: toClockwise(drawingPoints),
         pattern: surface.pattern,
       });
     }
     
-    // Reset drawing state
+    // Reset drawing state completely
     setDrawingPoints([]);
     setCurrentMousePos(null);
+    setCurrentWallStart(null);
+    setIsDrawingWall(false);
     dispatch({ type: 'default' });
   };
 
@@ -426,7 +601,7 @@ export const Planner: React.FC<PlannerProps> = ({ width, height }) => {
   }
 
   const removeSurface = () => {
-    setSurface({ id: self.crypto.randomUUID(), points: [], pattern: defaultPattern });
+    setSurface({ id: uuid(), points: [], pattern: defaultPattern });
     dispatch({ type: 'default' });
   }
   
@@ -573,68 +748,148 @@ export const Planner: React.FC<PlannerProps> = ({ width, height }) => {
   
   return (
     <div className="relative">
+      <TouchInstructions />
       {surfaceEditorOpen && (<PatternEditor className="" onClose={() => setSurfaceEditorOpen(false)} onSubmit={handleSurfaceEditorSubmit} value={surface.pattern} />)}
-      <div className="absolute z-10 left-1/2 top-2 -translate-x-1/2 flex items-center bg-gray-100 shadow-md p-1 space-x-2 rounded-lg">
+      
+      {/* Main toolbar - responsive positioning and sizing */}
+      <div className={classMerge(
+        "absolute z-10 flex items-center bg-gray-100 shadow-md p-1 gap-2 rounded-lg",
+        "left-2 top-2 flex-col w-12", // mobile
+        "md:left-1/2 md:top-2 md:-translate-x-1/2 md:flex-row md:w-auto", // desktop 
+      )}>
         <Tooltip 
           text={t('planner.ui.editMode')}
-          position="bottom"
+          position={"bottom"}
+          disabled={isTouchDevice}
           component={ref => 
-            <ToolbarButton ref={ref} onClick={() => dispatch({type: 'default'})} active={['default', 'edit-wall', 'edit-corner', 'edit-surface'].includes(state.mode)} icon={<SplinePointer />} />
+            <ToolbarButton 
+              ref={ref} 
+              onClick={() => dispatch({type: 'default'})} 
+              active={['default', 'edit-wall', 'edit-corner', 'edit-surface'].includes(state.mode)} 
+              icon={<SplinePointer />}
+            />
           } />
         <Tooltip 
           text={t('planner.ui.previewMode')}
-          position="bottom"
+          position={"bottom"}
+          disabled={isTouchDevice}
           component={ref => 
-            <ToolbarButton ref={ref} onClick={() => dispatch({type: 'preview'})} active={state.mode === 'preview'} icon={<Hand />} />
+            <ToolbarButton 
+              ref={ref} 
+              onClick={() => dispatch({type: 'preview'})} 
+              active={state.mode === 'preview'} 
+              icon={<Hand />} 
+              className={isTouchDevice ? "w-10 h-10" : ""}
+            />
           } />
         <Tooltip 
           text={t('planner.ui.addSurface')}
-          position="bottom"
+          position={"bottom"}
+          disabled={isTouchDevice}
           component={ref => 
-            <ToolbarButton ref={ref} onClick={() => dispatch({type: 'add-surface'})} active={state.mode === 'add-surface'} icon={<SquaresUnite />} />
+            <ToolbarButton 
+              ref={ref} 
+              onClick={() => dispatch({type: 'add-surface'})} 
+              active={state.mode === 'add-surface'} 
+              icon={<SquaresUnite />} 
+              className={isTouchDevice ? "w-10 h-10" : ""}
+            />
           } />
         <Tooltip 
           text={t('planner.ui.subtractSurface')}
-          position="bottom"
+          position={"bottom"}
+          disabled={isTouchDevice}
           component={ref => 
-            <ToolbarButton ref={ref} onClick={() => dispatch({type: 'subtract-surface'})} active={state.mode === 'subtract-surface'} icon={<SquaresSubtract />} />
+            <ToolbarButton 
+              ref={ref} 
+              onClick={() => dispatch({type: 'subtract-surface'})} 
+              active={state.mode === 'subtract-surface'} 
+              icon={<SquaresSubtract />} 
+              className={isTouchDevice ? "w-10 h-10" : ""}
+            />
           } />
         <Tooltip 
           text={t('planner.ui.drawWalls')}
-          position="bottom"
+          position={"bottom"}
+          disabled={isTouchDevice}
           component={ref => 
-            <ToolbarButton ref={ref} onClick={() => dispatch({type: 'draw-walls'})} active={state.mode === 'draw-walls'} icon={<Waypoints />} />
+            <ToolbarButton 
+              ref={ref} 
+              onClick={() => dispatch({type: 'draw-walls'})} 
+              active={state.mode === 'draw-walls'} 
+              icon={<Waypoints />} 
+              className={isTouchDevice ? "w-10 h-10" : ""}
+            />
           } />
+        
+        {/* Separator */}
+        <div className={classMerge(
+          "w-6 h-0 border-t border-solid border-t-black", // mobile
+          "md:h-6 md:w-0 md:border-l  md:border-l-black" // desktop
+        )} />
+        
         <Tooltip 
           text={t('planner.ui.undo')}
-          position="bottom"
+          position={"bottom"}
+          disabled={isTouchDevice}
           component={ref => 
-            <ToolbarButton ref={ref} onClick={undo} disabled={!canUndo} icon={<Undo />} />
+            <ToolbarButton 
+              ref={ref} 
+              onClick={undo} 
+              disabled={!canUndo} 
+              icon={<Undo />} 
+              className={isTouchDevice ? "w-10 h-10" : ""}
+            />
           } />
         <Tooltip 
           text={t('planner.ui.redo')}
-          position="bottom"
+          position={"bottom"}
+          disabled={isTouchDevice}
           component={ref => 
-            <ToolbarButton ref={ref} onClick={redo} disabled={!canRedo} icon={<Redo />} />
+            <ToolbarButton 
+              ref={ref} 
+              onClick={redo} 
+              disabled={!canRedo} 
+              icon={<Redo />} 
+              className={isTouchDevice ? "w-10 h-10" : ""}
+            />
           } />
-        <div className="h-6 w-0 border-l border-solid border-l-black" />
+        
         <Tooltip 
           text={t('planner.ui.saveToBrowser')}
-          position="bottom"
+          position={"bottom"}
+          disabled={isTouchDevice}
           component={ref => 
-            <ToolbarButton ref={ref} onClick={() => saveToLocalStorage('surface', surface)} icon={<Save />} />
+            <ToolbarButton 
+              ref={ref} 
+              onClick={() => saveToLocalStorage('surface', surface)} 
+              icon={<Save />} 
+              className={isTouchDevice ? "w-10 h-10" : ""}
+            />
           } />
         <Tooltip 
           text={t('planner.ui.downloadAsFile')}
-          position="bottom"
+          position={"bottom"}
+          disabled={isTouchDevice}
           component={ref => 
-            <ToolbarButton ref={ref} onClick={() => downloadSurface()} icon={<Download />} />
+            <ToolbarButton 
+              ref={ref} 
+              onClick={() => downloadSurface()} 
+              icon={<Download />} 
+              className={isTouchDevice ? "w-10 h-10" : ""}
+            />
           } />
         <Tooltip 
           text={t('planner.ui.uploadFile')}
-          position="bottom"
+          position={"bottom"}
+          disabled={isTouchDevice}
           component={ref => 
-            <ToolbarButton ref={ref} onClick={() => {document.getElementById('upload-surface')?.click()}} icon={<Upload />} />
+            <ToolbarButton 
+              ref={ref} 
+              onClick={() => {document.getElementById('upload-surface')?.click()}} 
+              icon={<Upload />} 
+              className={isTouchDevice ? "w-10 h-10" : ""}
+            />
           } />
         <input
           type="file"
@@ -650,62 +905,160 @@ export const Planner: React.FC<PlannerProps> = ({ width, height }) => {
           id="upload-surface"
         />
       </div>
-      <div className="absolute z-10 top-16 left-1/2 -translate-x-1/2 md:left-auto md:translate-x-0 md:right-2 md:top-2 bg-gray-100 shadow-md p-1 rounded-lg flex items-center justify-center">
+      
+      {/* Zoom controls - repositioned for touch devices */}
+      <div className={classMerge(
+        "absolute z-10 bg-gray-100 shadow-md p-1 rounded-lg flex items-center justify-center",
+        "top-2 right-2 flex-col", // mobile
+        "md:flex-row" // desktop
+      )}>
         <Tooltip 
           text={t('planner.ui.zoomIn')}
-          position="bottom"
+          position={"bottom"}
+          disabled={isTouchDevice}
           component={ref => 
-            <ToolbarButton ref={ref} onClick={() => setGlobalScale(c => c < 300 ? c + 10 : 300)} icon={<ZoomIn />} />
+            <ToolbarButton 
+              ref={ref} 
+              onClick={() => setGlobalScale(c => c < 300 ? c + 10 : 300)} 
+              icon={<ZoomIn />} 
+              className={"w-10 h-10 md:w-auto md:h-auto"}
+            />
           } />
-        <ToolbarButton onClick={() => setGlobalScale(100)} label={`${globalScale}%`} />
+        <ToolbarButton 
+          onClick={() => setGlobalScale(100)} 
+          label={`${globalScale.toFixed(0)}%`} 
+          className="w-8 h-10 text-xs md:text-sm md:w-14 md:h-9"
+        />
         <Tooltip 
           text={t('planner.ui.zoomOut')}
-          position="bottom"
+          position={"bottom"}
+          disabled={isTouchDevice}
           component={ref => 
-            <ToolbarButton ref={ref} onClick={() => setGlobalScale(c => c > 0 ? c - 10 : 0)} icon={<ZoomOut />} />
+            <ToolbarButton 
+              ref={ref} 
+              onClick={() => setGlobalScale(c => c > 0 ? Math.round((c - 10) * 10)/10 : 0)} 
+              icon={<ZoomOut />} 
+              className={"w-10 h-10 md:w-auto md:h-auto"}
+            />
           } />
       </div>
+      {/* Edit corner toolbar */}
       {state.mode === 'edit-corner' && (
-        <div className="absolute z-10 left-2 top-16 md:top-5 w-12 md:w-32 bg-gray-100 shadow-md p-1 rounded-lg">
+        <div className={classMerge(
+            "absolute z-10 bg-gray-100 shadow-md p-1 rounded-lg",
+              "left-16 top-2 flex flex-col space-y-1 w-12",
+              "md:left-2 md:w-32"
+          )}>
           <Tooltip 
             text={t('planner.ui.makeRightAngle')}
-            position="right"
+            position={"right"}
+            disabled={isTouchDevice}
             component={ref => 
               <ToolbarButton 
                 ref={ref}
                 disabled={isRightAngle([surface.points[state.prevWallIndex], surface.points[state.wallIndex], surface.points[state.nextWallIndex]])} 
                 onClick={() => makeAngleRight(state.prevWallIndex, state.wallIndex, state.nextWallIndex)} 
-                wide
-                icon={<RightAngle />} />
+                wide={!isTouchDevice}
+                icon={<RightAngle />}
+                className="w-10 h-10 md:w-auto md:h-auto"
+              />
             } />
           <Tooltip 
             text={t('planner.ui.deleteCorner')}
-            position="right"
+            position={"right"}
+            disabled={isTouchDevice}
             component={ref => 
-              <ToolbarButton ref={ref} variant="danger" disabled={deletionDisabled} onClick={() => removePoints([state.wallIndex])} wide icon={<Trash2 />} />
+              <ToolbarButton 
+                ref={ref} 
+                variant="danger" 
+                disabled={deletionDisabled} 
+                onClick={() => removePoints([state.wallIndex])} 
+                wide={!isTouchDevice}
+                icon={<Trash2 />}
+                className="w-10 h-10 md:w-auto md:h-auto"
+              />
             } />
         </div>
       )}
+      
+      {/* Edit wall toolbar */}
       {state.mode === 'edit-wall' && (
-        <div className="absolute z-10 left-2 top-16 md:top-5 w-12 md:w-32 bg-gray-100 shadow-md p-1 rounded-lg">
+        <div className={classMerge(
+            "absolute z-10 bg-gray-100 shadow-md p-1 rounded-lg",
+              "left-16 top-2 flex flex-col space-y-1 w-12",
+              "md:left-2 md:w-32"
+          )}>
           <Tooltip 
             text={t('planner.ui.deleteWall')}
-            position="right"
+            position={"right"}
+            disabled={isTouchDevice}
             component={ref => 
-              <ToolbarButton ref={ref} variant="danger" disabled={true} onClick={() => removePoints([state.nextWallIndex])} wide icon={<Trash2 />} />
+              <ToolbarButton 
+                ref={ref} 
+                variant="danger" 
+                disabled={true} 
+                onClick={() => removePoints([state.nextWallIndex])} 
+                wide={!isTouchDevice}
+                icon={<Trash2 />}
+                className="w-10 h-10 md:w-auto md:h-auto"
+              />
             } />
         </div>
       )}
+      
+      {/* Edit surface toolbar */}
       {state.mode === 'edit-surface' && (
         <>
-          <div className="absolute z-10 left-2 top-16 md:top-5 w-12 md:w-32 bg-gray-100 shadow-md p-1 rounded-lg">
+          <div className={classMerge(
+            "absolute z-10 bg-gray-100 shadow-md p-1 rounded-lg",
+              "left-16 top-2 flex flex-col space-y-1 w-12",
+              "md:left-2 md:w-32"
+          )}>
             <Tooltip 
               text={t('planner.ui.editPattern')}
-              position="right"
+              position={"right"}
+              disabled={isTouchDevice}
               component={ref => 
-              <ToolbarButton ref={ref} wide onClick={() => setSurfaceEditorOpen(true)} icon={<PencilRuler />} />
-            } />
+                <ToolbarButton 
+                  ref={ref} 
+                  wide={!isTouchDevice}
+                  onClick={() => setSurfaceEditorOpen(true)} 
+                  icon={<PencilRuler />}
+                  className="w-10 h-10 md:w-auto md:h-auto"
+                />
+              } />
             
+            {/* Desktop arrows - hidden on touch */}
+            {!isTouchDevice && (
+              <CursorArrows 
+                onDown={movePatternDown}
+                onLeft={movePatternLeft}
+                onRight={movePatternRight}
+                onUp={movePatternUp}
+                disabled={surface.pattern.tiles.length === 0 || surfaceEditorOpen}
+                variant="wide"
+                className="md:flex hidden"
+              />
+            )}
+            
+            <Tooltip 
+              text={t('planner.ui.deleteSurface')}
+              position={"right"}
+              disabled={isTouchDevice}
+              component={ref => 
+                <ToolbarButton 
+                  ref={ref} 
+                  variant="danger" 
+                  onClick={removeSurface} 
+                  wide={!isTouchDevice}
+                  icon={<Trash2 />}
+                  className="w-10 h-10 md:w-auto md:h-auto"
+                />
+              } />
+          </div>
+          
+          {/* Mobile arrows - shown on touch devices */}
+          {isTouchDevice && (
             <CursorArrows 
               onDown={movePatternDown}
               onLeft={movePatternLeft}
@@ -713,31 +1066,16 @@ export const Planner: React.FC<PlannerProps> = ({ width, height }) => {
               onUp={movePatternUp}
               disabled={surface.pattern.tiles.length === 0 || surfaceEditorOpen}
               variant="wide"
-              className="md:flex hidden"
+              className="absolute z-10 bottom-4 right-4"
             />
-            <Tooltip 
-              text={t('planner.ui.deleteSurface')}
-              position="right"
-              component={ref => 
-                <ToolbarButton ref={ref} variant="danger" onClick={removeSurface} wide icon={<Trash2 />} />
-              } />
-          </div>
-          <CursorArrows 
-              onDown={movePatternDown}
-              onLeft={movePatternLeft}
-              onRight={movePatternRight}
-              onUp={movePatternUp}
-              disabled={surface.pattern.tiles.length === 0 || surfaceEditorOpen}
-              variant="wide"
-              className="md:hidden flex absolute z-10 bottom-2 right-2"
-            />
+          )}
         </>
       )}
       <Stage
         ref={stageRef}
         width={width}
         height={height}
-        className={classMerge("bg-white", 
+        className={classMerge("bg-white planner-stage", 
           state.mode === 'preview' && "cursor-grab",
           state.mode === 'add-surface' && "cursor-crosshair",
           state.mode === 'subtract-surface' && "cursor-crosshair",
@@ -746,13 +1084,14 @@ export const Planner: React.FC<PlannerProps> = ({ width, height }) => {
           state.mode === 'edit-corner' && "default-cursor",
           state.mode === 'default' && "default-cursor",
         )}
-        onMouseDown={handleMouseDown}
-        onMouseMove={handleMouseMove}
-        onMouseUp={handleMouseUp}
-        onTouchStart={handleMouseDown}
-        onTouchMove={handleMouseMove}
-        onTouchEnd={handleMouseUp}
+        onMouseDown={!isTouchDevice ? handleMouseDown : undefined}
+        onMouseMove={!isTouchDevice ? handleMouseMove : undefined}
+        onMouseUp={!isTouchDevice ? handleMouseUp : undefined}
+        onTouchStart={isTouchDevice ? handleTouchStart : undefined}
+        onTouchMove={isTouchDevice ? handleTouchMove : undefined}
+        onTouchEnd={isTouchDevice ? handleTouchEnd : undefined}
         onClick={handleStageClick}
+        onDblClick={!isTouchDevice ? handleStageDoubleClick : undefined}
         scale={{ x: globalScale / 100, y: globalScale / 100 }}
         draggable={state.mode === 'preview'}
         onDragEnd={handleStageDragEnd}
@@ -807,6 +1146,7 @@ export const Planner: React.FC<PlannerProps> = ({ width, height }) => {
                   pointA={pt} 
                   pointB={nxt} 
                   edit={state.mode === 'edit-wall' && i === state.wallIndex} 
+                  disabled={!editable}
                   onClick={(p, idx) => dispatch({type: 'edit-wall', payload: { wallIndex: idx}})}
                 />}
                 <WallDimension
@@ -853,9 +1193,9 @@ export const Planner: React.FC<PlannerProps> = ({ width, height }) => {
         </Layer>
         <Layer>
           {/* Drawing walls visualization */}
-          {state.mode === 'draw-walls' && drawingPoints.length > 0 && (
+          {state.mode === 'draw-walls' && (
             <>
-              {/* Completed segments */}
+              {/* Completed walls */}
               {drawingPoints.length > 1 && (
                 <Line
                   points={drawingPoints.flat()}
@@ -865,20 +1205,43 @@ export const Planner: React.FC<PlannerProps> = ({ width, height }) => {
                   lineJoin="round"
                 />
               )}
-              {/* Current segment being drawn */}
-              {currentMousePos && (
+              
+              {/* Current wall being drawn (drag preview) */}
+              {isDrawingWall && currentWallStart && currentMousePos && (
+                <>
+                  <Line
+                    points={[
+                      ...currentWallStart,
+                      ...currentMousePos
+                    ]}
+                    stroke={isSurfaceIntersecting([...drawingPoints, currentWallStart, currentMousePos]) ? "rgba(255, 0, 0, 0.5)" : "rgba(0, 0, 0, 0.5)"}
+                    strokeWidth={2}
+                    lineCap="round"
+                    dash={[4, 4]}
+                  />
+                  {/* Dimension for current wall being drawn */}
+                  <WallDimension
+                    pointA={currentWallStart}
+                    pointB={currentMousePos}
+                    scale={0.01}
+                  />
+                </>
+              )}
+              
+              {/* Next wall preview (from last point to current mouse) */}
+              {!isDrawingWall && drawingPoints.length > 0 && currentMousePos && (
                 <>
                   <Line
                     points={[
                       ...drawingPoints[drawingPoints.length - 1],
                       ...currentMousePos
                     ]}
-                    stroke="rgba(0, 0, 0, 0.2)"
+                    stroke={"rgba(0, 0, 0, 0.2)"}
                     strokeWidth={2}
                     lineCap="round"
-                    dash={[4, 4]}
+                    dash={[8, 8]}
                   />
-                  {/* Dimension for current segment */}
+                  {/* Dimension for next wall preview */}
                   <WallDimension
                     pointA={drawingPoints[drawingPoints.length - 1]}
                     pointB={currentMousePos}
@@ -886,6 +1249,7 @@ export const Planner: React.FC<PlannerProps> = ({ width, height }) => {
                   />
                 </>
               )}
+              
               {/* Closing line preview when near start point */}
               {drawingPoints.length >= 3 && currentMousePos && shouldCompleteDrawing(currentMousePos, drawingPoints) && (
                 <Line
@@ -899,6 +1263,7 @@ export const Planner: React.FC<PlannerProps> = ({ width, height }) => {
                   dash={[4, 4]}
                 />
               )}
+              
               {/* Start point indicator */}
               {drawingPoints.length > 0 && (
                 <Line
@@ -907,6 +1272,18 @@ export const Planner: React.FC<PlannerProps> = ({ width, height }) => {
                   y={drawingPoints[0][1]}
                   stroke="green"
                   strokeWidth={10}
+                  lineCap="round"
+                />
+              )}
+              
+              {/* Current drawing start point indicator */}
+              {currentWallStart && (
+                <Line
+                  points={[0, 0, 0, 0]}
+                  x={currentWallStart[0]}
+                  y={currentWallStart[1]}
+                  stroke="blue"
+                  strokeWidth={8}
                   lineCap="round"
                 />
               )}
@@ -919,6 +1296,7 @@ export const Planner: React.FC<PlannerProps> = ({ width, height }) => {
           pointA={surface.points[state.wallIndex]}
           pointB={surface.points[(state.wallIndex + 1) % surface.points.length]}
           scale={0.01}
+          autoFocus={!isTouchDevice}
           key={state.wallIndex}
           globalScale={globalScale}
           stagePosition={stageRef.current?.position() || { x: 0, y: 0 }}

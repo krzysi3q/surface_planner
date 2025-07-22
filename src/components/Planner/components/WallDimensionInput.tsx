@@ -10,6 +10,7 @@ interface WallDimensionInputProps {
   pointA: Point;
   pointB: Point;
   scale: number;
+  autoFocus?: boolean;
   globalScale: number;
   stagePosition: { x: number; y: number };
   onDimensionChange: (newLength: number) => void;
@@ -27,6 +28,7 @@ export const WallDimensionInput: React.FC<WallDimensionInputProps> = ({
   stagePosition,
   onDimensionChange,
   disabled = false,
+  autoFocus = false,
   unit = 'm',
   keepRightAngles = false,
   onKeepRightAnglesChange
@@ -54,8 +56,16 @@ export const WallDimensionInput: React.FC<WallDimensionInputProps> = ({
   if (Math.abs(displayAngle) > Math.PI / 2) {
     displayAngle = displayAngle > 0 ? displayAngle - Math.PI : displayAngle + Math.PI;
   }
-
-  const offset = -40; // Offset to move input outside
+  
+  // Calculate dynamic offset based on wall length and scale to maintain proper distance
+  const wallLength = Math.hypot(pointB[0] - pointA[0], pointB[1] - pointA[1]);
+  const baseOffset = Math.max(50, Math.min(100, wallLength * 0.15)); // Scale with wall length, clamp between 50-100
+  
+  // Better scaling that works well across zoom levels
+  const scaleRatio = globalScale / 100;
+  const scaleAdjustedOffset = baseOffset * Math.pow(scaleRatio, 0.3) / scaleRatio; // Gentler scaling curve
+  const offset = -scaleAdjustedOffset;
+  
   const offsetX = offset * Math.cos(angle + Math.PI / 2);
   const offsetY = offset * Math.sin(angle + Math.PI / 2);
 
@@ -64,11 +74,11 @@ export const WallDimensionInput: React.FC<WallDimensionInputProps> = ({
   const screenY = (midY + offsetY) * (globalScale / 100) + stagePosition.y;
 
   useEffect(() => {
-    if (inputRef.current) {
+    if (inputRef.current && autoFocus) {
       inputRef.current.focus();
       inputRef.current.select();
     }
-  }, []);
+  }, [autoFocus]);
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setInputValue(e.target.value);

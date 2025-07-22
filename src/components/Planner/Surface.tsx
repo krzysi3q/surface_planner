@@ -65,7 +65,12 @@ export const Surface: React.FC<SurfaceProps> = ({ points, id, onClick, pattern, 
       if (disabled) return;
       setGrabCursor(e);
       onClick?.();
-    }
+    },
+    // handleTouchStart: (e: Konva.KonvaEventObject<TouchEvent>) => {
+    //   if (disabled) return;
+    //   e.evt.preventDefault();
+    //   onClick?.();
+    // }
   }), [disabled, edit, onClick]);
 
   const scale = (pattern?.scale || 1);
@@ -101,6 +106,8 @@ export const Surface: React.FC<SurfaceProps> = ({ points, id, onClick, pattern, 
         shadowOpacity={0.3}
         shadowBlur={state === 'hover' ? 10 : 0}
         onClick={handleClick}
+        // onTouchStart={handleTouchStart}
+        onTap={handleClick}
         onMouseEnter={handleMouseEnter}
         onMouseLeave={handleMouseLeave}
         onMouseDown={(e) => {
@@ -109,10 +116,22 @@ export const Surface: React.FC<SurfaceProps> = ({ points, id, onClick, pattern, 
           startPos.current = { mouse: { x: e.evt.clientX, y: e.evt.clientY }, pattern: {x: pattern?.x || 0, y: pattern?.y || 0} };
           e.cancelBubble = true; // Prevent event bubbling
         }}
+        onTouchStart={(e: Konva.KonvaEventObject<TouchEvent>) => {
+          if( e.evt.touches.length > 1) return; // Ignore multi-touch
+          if (disabled || !edit) return;
+          const touch = e.evt.touches[0];
+          if (touch) {
+            startPos.current = { mouse: { x: touch.clientX, y: touch.clientY }, pattern: {x: pattern?.x || 0, y: pattern?.y || 0} };
+            e.cancelBubble = true; // Prevent event bubbling
+          }
+        }}
         onMouseUp={(e) => {
           if (edit) {
             removeCustomCursor(e);
           }
+          startPos.current = null;
+        }}
+        onTouchEnd={() => {
           startPos.current = null;
         }}
         onMouseMove={(e) => {
@@ -126,6 +145,21 @@ export const Surface: React.FC<SurfaceProps> = ({ points, id, onClick, pattern, 
             x: newX,
             y: newY,
           });
+        }}
+        onTouchMove={(e) => {
+          if (disabled || !edit || !startPos.current) return;
+          const touch = e.evt.touches[0];
+          if (touch) {
+            const dx = touch.clientX - startPos.current.mouse.x;
+            const dy = touch.clientY - startPos.current.mouse.y;
+            const newX = startPos.current.pattern.x + dx;
+            const newY = startPos.current.pattern.y + dy;
+            onChange?.({
+              ...pattern,
+              x: newX,
+              y: newY,
+            });
+          }
           
         }}
       />

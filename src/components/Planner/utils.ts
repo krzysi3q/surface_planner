@@ -37,6 +37,12 @@ export const getSurfaceArea = (surface: Point[]): number => {
   return Math.abs(shape.totalArea());
 }
 
+export const toClockwise = (points: Point[]): Point[] => {
+  const shape = pathPointsToShape(points);
+  shape.fixOrientation();
+  return shape.paths[0].map(shapePointToPathPoint);
+}
+
 export const doSurfacesIntersect = (surfaceA: Point[], surfaceB: Point[]): boolean => {
   // If surfaces have less than 3 points, they're not valid polygons
   if (surfaceA.length < 3 || surfaceB.length < 3) {
