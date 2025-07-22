@@ -16,7 +16,7 @@ export const LanguageSwitcher: React.FC = () => {
     const currentLang = segments[0];
     
     // Check if current first segment is a language code
-    const isCurrentLangInPath = ['en', 'pl', 'es'].includes(currentLang);
+    const isCurrentLangInPath = ['en', 'pl', 'es', 'zh'].includes(currentLang);
     
     let newPath: string;
     if (isCurrentLangInPath) {
@@ -39,7 +39,7 @@ export const LanguageSwitcher: React.FC = () => {
     // Extract current path without language prefix
     const segments = pathname.split('/').filter(Boolean);
     const currentLang = segments[0];
-    const isCurrentLangInPath = ['en', 'pl', 'es'].includes(currentLang);
+    const isCurrentLangInPath = ['en', 'pl', 'es', 'zh'].includes(currentLang);
     
     const langPath = isCurrentLangInPath ? `/${currentLang}/language` : `/en/language`;
     router.push(langPath);
@@ -58,6 +58,7 @@ export const LanguageSwitcher: React.FC = () => {
           <option value="en">{t('language.english')}</option>
           <option value="pl">{t('language.polish')}</option>
           <option value="es">{t('language.spanish')}</option>
+          <option value="zh">{t('language.chinese')}</option>
         </select>
         {/* Alternative button to open full language page */}
         <button 

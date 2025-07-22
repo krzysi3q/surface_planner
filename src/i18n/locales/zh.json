@@ -1,0 +1,152 @@
+{
+  "app": {
+    "title": "HandyLay - 表面规划师",
+    "name": "Handy Lay",
+    "description": "使用交互式墙面和瓷砖布局创建和设计完美的公寓地板或墙面。",
+    "tagline": "您友好的瓷砖和面板布局规划师",
+    "icon": "应用图标"
+  },
+  "home": {
+    "hero": {
+      "title": "Handy Lay",
+      "subtitle": "您友好的瓷砖和面板布局规划师",
+      "description": "为您的墙面和地板规划完美的瓷砖布局！避免边缘出现小块，最大限度减少切割 - 让您的DIY项目看起来专业并为您节省金钱。",
+      "cta": "立即开始规划",
+      "learnMore": "了解更多",
+      "scrollToFeatures": "滚动到功能部分"
+    },
+    "features": {
+      "title": "为什么选择 Handy Lay？",
+      "smartLayout": {
+        "title": "智能布局",
+        "description": "自动获得最佳瓷砖排列 - 不再需要猜测！我们的工具计算出完美的布局，以最大限度减少浪费并最大化美观。"
+      },
+      "visualPreview": {
+        "title": "可视化预览",
+        "description": "在开始切割之前，准确看到您的瓷砖将如何呈现。没有意外 - 只有对您项目的信心！"
+      },
+      "saveMoney": {
+        "title": "节省金钱",
+        "description": "减少浪费，只购买您需要的。我们的计算帮助您避免过度购买瓷砖和材料。"
+      }
+    },
+    "howItWorks": {
+      "title": "工作原理",
+      "step1": {
+        "title": "测量您的空间",
+        "description": "输入您的墙面或地板尺寸"
+      },
+      "step2": {
+        "title": "选择您的瓷砖",
+        "description": "输入您的瓷砖或面板的尺寸"
+      },
+      "step3": {
+        "title": "获取您的计划",
+        "description": "我们将为您创建完美的布局"
+      },
+      "step4": {
+        "title": "开始铺贴！",
+        "description": "按照计划进行并享受结果"
+      }
+    },
+    "benefits": {
+      "title": "非常适合DIY爱好者",
+      "saveMoneyTitle": "节省金钱",
+      "saveMoneyDesc": "减少高达15%的材料浪费，避免购买额外的瓷砖\"以防万一\"",
+      "lookProTitle": "看起来像专业人士",
+      "lookProDesc": "获得专业外观的结果，但无需专业价格",
+      "gainConfidenceTitle": "获得信心",
+      "gainConfidenceDesc": "开始您的项目时清楚知道要做什么以及需要多少材料",
+      "greatFor": "非常适合：",
+      "targets": {
+        "firstTimers": "首次铺瓷砖者",
+        "weekendWarriors": "周末勇士",
+        "homeRenovation": "家庭装修项目",
+        "bathroomKitchen": "浴室和厨房改造",
+        "professionals": "专业承包商也适用！"
+      }
+    },
+    "cta": {
+      "title": "准备开始了吗？",
+      "description": "加入成千上万已经在使用 Handy Lay 创建美丽、无浪费瓷砖布局的DIY爱好者和专业人士。",
+      "button": "立即开始规划"
+    },
+    "footer": {
+      "copyright": "© 2025 Handy Lay. 保留所有权利。"
+    }
+  },
+  "touchDevice": {
+    "title": "不支持触摸设备",
+    "description": "此规划师目前需要配备鼠标的台式机或笔记本电脑进行精确的绘图和编辑操作。",
+    "requirement": "请使用台式机或笔记本电脑",
+    "futureSupport": "触摸设备支持计划在未来更新中提供",
+    "shortDescription": "此规划师需要精确的鼠标交互进行绘图和编辑。请使用台式机或笔记本电脑以获得最佳体验。",
+    "recommendation": "推荐台式机/笔记本电脑",
+    "gotIt": "知道了"
+  },
+  "planner": {
+    "patternEditor": {
+      "title": "图案编辑器",
+      "patterns": "图案：",
+      "dimensions": "毫米",
+      "angle": "°",
+      "cancel": "取消",
+      "save": "保存",
+      "addTriangle": "添加三角形",
+      "addRectangleHorizontal": "添加水平矩形",
+      "addRectangleVertical": "添加垂直矩形",
+      "addSquare": "添加正方形",
+      "addDiamond": "添加菱形",
+      "addHexagon": "添加六边形",
+      "togglePreview": "切换预览",
+      "zoomIn": "放大",
+      "zoomOut": "缩小", 
+      "resetZoom": "重置缩放",
+      "duplicateTile": "复制瓷砖",
+      "deleteTile": "删除瓷砖",
+      "close": "关闭"
+    },
+    "ui": {
+      "delete": "删除",
+      "copy": "复制",
+      "preview": "预览",
+      "undo": "撤销",
+      "redo": "重做",
+      "save": "保存",
+      "download": "下载",
+      "upload": "上传",
+      "zoomIn": "放大",
+      "zoomOut": "缩小",
+      "editMode": "编辑模式",
+      "previewMode": "预览模式",
+      "addSurface": "添加表面",
+      "subtractSurface": "减去表面",
+      "drawWalls": "绘制墙面",
+      "saveToBrowser": "保存到浏览器",
+      "downloadAsFile": "下载为文件",
+      "uploadFile": "上传文件",
+      "makeRightAngle": "制作直角",
+      "deleteCorner": "删除角落",
+      "deleteWall": "删除墙面",
+      "deleteSurface": "删除表面",
+      "editPattern": "编辑图案",
+      "editWallLength": "编辑墙面长度",
+      "keepRightAngles": "保持直角"
+    },
+    "measurements": {
+      "mm": "毫米",
+      "m": "米",
+      "deg": "°"
+    }
+  },
+  "language": {
+    "english": "English",
+    "polish": "Polski",
+    "spanish": "Español",
+    "chinese": "中文",
+    "switchLanguage": "切换语言",
+    "choosePreferred": "选择您的首选语言",
+    "changeSettingsLater": "您可以稍后在设置中更改此项",
+    "moreOptions": "更多语言选项"
+  }
+}
