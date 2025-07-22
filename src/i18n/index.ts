@@ -4,6 +4,7 @@ import LanguageDetector from 'i18next-browser-languagedetector';
 
 import en from './locales/en.json';
 import pl from './locales/pl.json';
+import es from './locales/es.json';
 
 const resources = {
   en: {
@@ -11,6 +12,9 @@ const resources = {
   },
   pl: {
     translation: pl
+  },
+  es: {
+    translation: es
   }
 };
 
@@ -38,7 +42,7 @@ i18n
 
 // Helper function to set language from URL
 export const setLanguageFromUrl = (lang: string) => {
-  if (['en', 'pl'].includes(lang) && i18n.language !== lang) {
+  if (['en', 'pl', 'es'].includes(lang) && i18n.language !== lang) {
     i18n.changeLanguage(lang);
   }
 };

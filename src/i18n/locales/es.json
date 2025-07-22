@@ -1,0 +1,151 @@
+{
+  "app": {
+    "title": "HandyLay - Planificador de Superficies",
+    "name": "Handy Lay",
+    "description": "Crea y diseña el suelo o pared perfecta de tu apartamento con paredes interactivas y diseños de azulejos.",
+    "tagline": "Tu planificador amigable de azulejos y paneles",
+    "icon": "Icono de la Aplicación"
+  },
+  "home": {
+    "hero": {
+      "title": "Handy Lay",
+      "subtitle": "Tu planificador amigable de azulejos y paneles",
+      "description": "¡Planifica el diseño de azulejos perfecto para tus paredes y suelos! Evita piezas pequeñas en los bordes y minimiza los cortes - haciendo que tu proyecto DIY se vea profesional y te ahorre dinero.",
+      "cta": "Comenzar a Planificar Ahora",
+      "learnMore": "Más información",
+      "scrollToFeatures": "Desplazarse a la sección de características"
+    },
+    "features": {
+      "title": "¿Por qué elegir Handy Lay?",
+      "smartLayout": {
+        "title": "Diseño Inteligente",
+        "description": "Obtén la mejor disposición de azulejos automáticamente - ¡no más adivinanzas! Nuestra herramienta calcula el diseño perfecto para minimizar el desperdicio y maximizar la belleza."
+      },
+      "visualPreview": {
+        "title": "Vista Previa Visual",
+        "description": "Ve exactamente cómo se verán tus azulejos antes de empezar a cortar. ¡Sin sorpresas - solo confianza en tu proyecto!"
+      },
+      "saveMoney": {
+        "title": "Ahorra Dinero",
+        "description": "Reduce el desperdicio y compra solo lo que necesitas. Nuestros cálculos te ayudan a evitar comprar azulejos y materiales en exceso."
+      }
+    },
+    "howItWorks": {
+      "title": "Cómo Funciona",
+      "step1": {
+        "title": "Mide Tu Espacio",
+        "description": "Introduce las dimensiones de tu pared o suelo"
+      },
+      "step2": {
+        "title": "Elige Tus Azulejos",
+        "description": "Introduce el tamaño de tus azulejos o paneles"
+      },
+      "step3": {
+        "title": "Obtén Tu Plan",
+        "description": "Crearemos el diseño perfecto para ti"
+      },
+      "step4": {
+        "title": "¡Comienza a Colocar!",
+        "description": "Sigue el plan y disfruta de los resultados"
+      }
+    },
+    "benefits": {
+      "title": "Perfecto para Entusiastas del Bricolaje",
+      "saveMoneyTitle": "Ahorra Dinero",
+      "saveMoneyDesc": "Reduce el desperdicio de material hasta un 15% y evita comprar azulejos extra \"por si acaso\"",
+      "lookProTitle": "Luce Como un Profesional",
+      "lookProDesc": "Obtén resultados de aspecto profesional sin el precio profesional",
+      "gainConfidenceTitle": "Gana Confianza",
+      "gainConfidenceDesc": "Comienza tu proyecto sabiendo exactamente qué hacer y cuánto material necesitas",
+      "greatFor": "Genial para:",
+      "targets": {
+        "firstTimers": "Colocadores de azulejos principiantes",
+        "weekendWarriors": "Guerreros de fin de semana",
+        "homeRenovation": "Proyectos de renovación del hogar",
+        "bathroomKitchen": "Renovaciones de baño y cocina",
+        "professionals": "¡También contratistas profesionales!"
+      }
+    },
+    "cta": {
+      "title": "¿Listo para Comenzar?",
+      "description": "Únete a miles de entusiastas del bricolaje y profesionales que ya están creando hermosos diseños de azulejos sin desperdicio con Handy Lay.",
+      "button": "Comenzar a Planificar Ahora"
+    },
+    "footer": {
+      "copyright": "© 2025 Handy Lay. Todos los derechos reservados."
+    }
+  },
+  "touchDevice": {
+    "title": "Dispositivos Táctiles No Compatibles",
+    "description": "Este Planificador actualmente requiere una computadora de escritorio o portátil con un ratón para operaciones precisas de dibujo y edición.",
+    "requirement": "Por favor, usa una computadora de escritorio o portátil",
+    "futureSupport": "El soporte para dispositivos táctiles está planificado para futuras actualizaciones",
+    "shortDescription": "Este Planificador requiere interacciones precisas con el ratón para dibujar y editar. Por favor, usa una computadora de escritorio o portátil para la mejor experiencia.",
+    "recommendation": "Escritorio/portátil recomendado",
+    "gotIt": "Entendido"
+  },
+  "planner": {
+    "patternEditor": {
+      "title": "Editor de Patrones",
+      "patterns": "Patrones:",
+      "dimensions": "mm",
+      "angle": "°",
+      "cancel": "Cancelar",
+      "save": "Guardar",
+      "addTriangle": "Agregar triángulo",
+      "addRectangleHorizontal": "Agregar rectángulo horizontal",
+      "addRectangleVertical": "Agregar rectángulo vertical",
+      "addSquare": "Agregar cuadrado",
+      "addDiamond": "Agregar diamante",
+      "addHexagon": "Agregar hexágono",
+      "togglePreview": "Alternar vista previa",
+      "zoomIn": "Acercar",
+      "zoomOut": "Alejar", 
+      "resetZoom": "Restablecer Zoom",
+      "duplicateTile": "Duplicar azulejo",
+      "deleteTile": "Eliminar azulejo",
+      "close": "Cerrar"
+    },
+    "ui": {
+      "delete": "Eliminar",
+      "copy": "Copiar",
+      "preview": "Vista previa",
+      "undo": "Deshacer",
+      "redo": "Rehacer",
+      "save": "Guardar",
+      "download": "Descargar",
+      "upload": "Subir",
+      "zoomIn": "Acercar",
+      "zoomOut": "Alejar",
+      "editMode": "Modo de edición",
+      "previewMode": "Modo de vista previa",
+      "addSurface": "Agregar superficie",
+      "subtractSurface": "Restar superficie",
+      "drawWalls": "Dibujar paredes",
+      "saveToBrowser": "Guardar en navegador",
+      "downloadAsFile": "Descargar como archivo",
+      "uploadFile": "Subir archivo",
+      "makeRightAngle": "Hacer ángulo recto",
+      "deleteCorner": "Eliminar esquina",
+      "deleteWall": "Eliminar pared",
+      "deleteSurface": "Eliminar superficie",
+      "editPattern": "Editar patrón",
+      "editWallLength": "Editar longitud de pared",
+      "keepRightAngles": "Mantener ángulos rectos"
+    },
+    "measurements": {
+      "mm": "mm",
+      "m": "m",
+      "deg": "°"
+    }
+  },
+  "language": {
+    "english": "English",
+    "polish": "Polski",
+    "spanish": "Español",
+    "switchLanguage": "Cambiar Idioma",
+    "choosePreferred": "Elige tu idioma preferido",
+    "changeSettingsLater": "Puedes cambiar esto más tarde en la configuración",
+    "moreOptions": "Más opciones de idioma"
+  }
+}

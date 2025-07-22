@@ -14,6 +14,7 @@ export default function LanguagePage() {
   const languages = [
     { code: 'en', name: 'English', flag: '🇺🇸' },
     { code: 'pl', name: 'Polski', flag: '🇵🇱' },
+    { code: 'es', name: 'Español', flag: '🇪🇸' },
   ];
 
   const handleLanguageSelect = (languageCode: string) => {
