@@ -871,7 +871,7 @@ export const Planner: React.FC<PlannerProps> = ({ width, height }) => {
           component={ref => 
             <ToolbarButton 
               ref={ref} 
-              onClick={undo} 
+              onClick={() => { dispatch({ type: 'default' }); undo(); }} 
               disabled={!canUndo} 
               icon={<Undo />} 
               className={isTouchDevice ? "w-10 h-10" : ""}
@@ -884,7 +884,7 @@ export const Planner: React.FC<PlannerProps> = ({ width, height }) => {
           component={ref => 
             <ToolbarButton 
               ref={ref} 
-              onClick={redo} 
+              onClick={() => { dispatch({ type: 'default' }); redo(); }} 
               disabled={!canRedo} 
               icon={<Redo />} 
               className={isTouchDevice ? "w-10 h-10" : ""}
