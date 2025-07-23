@@ -7,7 +7,7 @@ export interface WallStructure {
 
 export interface SurfaceType {
   id: string;
-  points: Point[];
+  points: Point[][];
   pattern: Pattern;
 }
 

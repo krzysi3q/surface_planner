@@ -1,12 +1,12 @@
 import React, { useEffect, useMemo } from "react";
 import { Pattern, Point } from "./types";
-import { Group, Line } from "react-konva";
+import { Group, Line, Shape } from "react-konva";
 import { removeCustomCursor, setGrabbingCursor, setGrabCursor, setPointerCursor } from "./domUtils";
 import { createPatternCanvas, drawPattern} from "./utils";
 import Konva from "konva";
 
 interface SurfaceProps { 
-  points: Point[];
+  points: Point[][];
   id: string;
   edit: boolean;
   pattern: Pattern;
@@ -66,32 +66,43 @@ export const Surface: React.FC<SurfaceProps> = ({ points, id, onClick, pattern, 
       setGrabCursor(e);
       onClick?.();
     },
-    // handleTouchStart: (e: Konva.KonvaEventObject<TouchEvent>) => {
-    //   if (disabled) return;
-    //   e.evt.preventDefault();
-    //   onClick?.();
-    // }
   }), [disabled, edit, onClick]);
 
   const scale = (pattern?.scale || 1);
 
   const startPos = React.useRef<{ mouse: {x: number, y: number}, pattern: {x: number, y: number}} | null>(null)
   
+  const sceneFunc = useMemo(() => (context: Konva.Context, shape: Konva.Shape) => {
+    context.beginPath();
+    points.forEach((surface) => {
+      surface.forEach((point, i) => {
+        if (i === 0) {
+          context.moveTo(point[0], point[1]);
+        } else {
+          context.lineTo(point[0], point[1]);
+        }
+      });
+      context.lineTo(surface[0][0], surface[0][1]);
+      context.closePath();
+    });
+    context.fillStrokeShape(shape);
+  }, [points]);
+
   return (
     <Group>
-      <Line
+      <Shape
         key={`band-${id}`}
         id={`band-${id}`}
-        points={points.flat()}
+        sceneFunc={sceneFunc}
         ref={lineRef}
         closed
         strokeWidth={45}
         lineJoin="miter"
       />
-      <Line
+      <Shape
         key={`mask-${id}`}
         id={`mask-${id}`}
-        points={points.flat()}
+        sceneFunc={sceneFunc}
         closed
         fill={!background ? 'white' : undefined}
         fillPatternImage={background}
@@ -106,7 +117,6 @@ export const Surface: React.FC<SurfaceProps> = ({ points, id, onClick, pattern, 
         shadowOpacity={0.3}
         shadowBlur={state === 'hover' ? 10 : 0}
         onClick={handleClick}
-        // onTouchStart={handleTouchStart}
         onTap={handleClick}
         onMouseEnter={handleMouseEnter}
         onMouseLeave={handleMouseLeave}

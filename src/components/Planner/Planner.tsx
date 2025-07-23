@@ -28,8 +28,10 @@ import { CursorArrows } from "../CursorArrows";
 import { Tooltip } from "../Tooltip";
 import { TouchInstructions } from "../TouchInstructions";
 
-type TemporarySurface = SurfaceType & {
+type TemporarySurface = {
   state: "error" | "valid";
+  id: string;
+  points: Point[];
   idle: boolean;
 };
 
@@ -64,7 +66,7 @@ const isSamePoint = (pointA: Point, pointB: Point) => {
   return pointA[0] === pointB[0] && pointA[1] === pointB[1];
 }
 
-const validateSurfaceOperation = (currentSurface: Point[], newSurface: Point[], operation: ReducerStateAddSurface['mode'] | ReducerStateSubtractSurface['mode']) => {
+const validateSurfaceOperation = (currentSurface: Point[][], newSurface: Point[][], operation: ReducerStateAddSurface['mode'] | ReducerStateSubtractSurface['mode']) => {
   if (getSurfaceArea(newSurface) < 10) {
       return false;
   }
@@ -76,7 +78,7 @@ const validateSurfaceOperation = (currentSurface: Point[], newSurface: Point[], 
   return true;
 }
 
-const useDragStage = (setSurface: ReturnType<typeof useHistoryState<{id: string, points: Point[], pattern: Pattern}>>['set'], enabled = true) => {
+const useDragStage = (setSurface: ReturnType<typeof useHistoryState<{id: string, points: Point[][], pattern: Pattern}>>['set'], enabled = true) => {
   const startPosRef = useRef<{ x: number; y: number } | null>(null);
 
   return useMemo(() => ({
@@ -105,7 +107,7 @@ const useDragStage = (setSurface: ReturnType<typeof useHistoryState<{id: string,
           x: current.pattern.x - dx,
           y: current.pattern.y - dy,
         },
-        points: current.points.map(pt => [pt[0] - dx, pt[1] - dy]),
+        points: current.points.map(s => s.map(pt => [pt[0] - dx, pt[1] - dy])),
       }));
       
       stage.position({ x: 0, y: 0 }); // reset position after dragging
@@ -113,11 +115,18 @@ const useDragStage = (setSurface: ReturnType<typeof useHistoryState<{id: string,
   }), [setSurface, enabled])
 }
 
+const isRightAngle = (points: [Point, Point, Point]) => { 
+  const [a, b, c] = points;
+  if (a[0] === b[0] && b[1] === c[1]) return true; 
+  if (a[1] === b[1] && b[0] === c[0]) return true;
+  return false;
+}
+
 
 export const Planner: React.FC<PlannerProps> = ({ width, height }) => {
   const { t } = useTranslation();
   const isTouchDevice = useTouchDevice();
-  const { state: surface, set: setSurface, undo, redo, persist, canUndo, canRedo } = useHistoryState<{id: string, points: Point[], pattern: Pattern}>(loadFromLocalStorage('surface') || { id: uuid(), points: [], pattern: defaultPattern });
+  const { state: surface, set: setSurface, undo, redo, persist, canUndo, canRedo } = useHistoryState<{id: string, points: Point[][], pattern: Pattern}>(loadFromLocalStorage('surface') || { id: uuid(), points: [], pattern: defaultPattern });
   const [ surfaceEditorOpen, setSurfaceEditorOpen ] = React.useState<boolean>(false);
   const [keepRightAngles, setKeepRightAngles] = React.useState<boolean>(true);
   const stageRef = React.useRef<Konva.Stage>(null);
@@ -200,7 +209,7 @@ export const Planner: React.FC<PlannerProps> = ({ width, height }) => {
             x: current.pattern.x + dx,
             y: current.pattern.y + dy,
           },
-          points: current.points.map(pt => [pt[0] + dx, pt[1] + dy]),
+          points: current.points.map(s => s.map(pt => [pt[0] + dx, pt[1] + dy])),
         }));
         
         // Update the center for next move calculation
@@ -289,7 +298,7 @@ export const Planner: React.FC<PlannerProps> = ({ width, height }) => {
     }
   }
 
-  const pointsCopy = useRef<Point[] | null>(null)
+  const pointsCopy = useRef<Point[][] | null>(null)
   const startPosRef = useRef<{ x: number; y: number } | null>(null);
   const handleDragStart = () => {
     persist();
@@ -298,17 +307,17 @@ export const Planner: React.FC<PlannerProps> = ({ width, height }) => {
 
   const handleDragEnd = (e: Konva.KonvaEventObject<MouseEvent>) => {
     if (state.mode === 'edit-wall') {
-      const { wallIndex, nextWallIndex } = state;
-      const [x1, y1] = surface.points[wallIndex];
-      const [x2, y2] = surface.points[nextWallIndex];
+      const { wallIndex, nextWallIndex, surfaceIndex } = state;
+      const [x1, y1] = surface.points[surfaceIndex][wallIndex];
+      const [x2, y2] = surface.points[surfaceIndex][nextWallIndex];
       const midX = x1 + (x2 - x1) / 2;
       const midY = y1 + (y2 - y1) / 2;
       e.target.x(midX - e.target.width()/2);
       e.target.y(midY - e.target.height()/2);
     }
     if (state.mode === 'edit-corner') {
-      const { wallIndex } = state;
-      const [x, y] = surface.points[wallIndex]; 
+      const { wallIndex, surfaceIndex } = state;
+      const [x, y] = surface.points[surfaceIndex][wallIndex]; 
       e.target.x(x);
       e.target.y(y);
     }
@@ -317,49 +326,65 @@ export const Planner: React.FC<PlannerProps> = ({ width, height }) => {
 
   const handleWallDragMove = (e: Konva.KonvaEventObject<DragEvent>, dA: Point, dB: Point) => {
     if (state.mode !== 'edit-wall' || pointsCopy.current === null) return;
-    const { wallIndex, nextWallIndex } = state;
-    const newPoints = [...pointsCopy.current];
-    const afterNextIndex = (nextWallIndex + 1) % newPoints.length;
-    const prevIndex = wallIndex === 0 ? newPoints.length - 1 : wallIndex - 1;
+    const { wallIndex, nextWallIndex, surfaceIndex } = state;
+    const newSurfacePoints = [...pointsCopy.current[surfaceIndex]];
+    const afterNextIndex = (nextWallIndex + 1) % newSurfacePoints.length;
+    const prevIndex = wallIndex === 0 ? newSurfacePoints.length - 1 : wallIndex - 1;
 
-    const [x0, y0] = newPoints[wallIndex];
-    const [x1, y1] = newPoints[nextWallIndex];
-    newPoints[wallIndex] = [x0 + dA[0], y0 + dA[1]];
-    newPoints[nextWallIndex] = [x1 + dB[0], y1 + dB[1]];
-    if (isSamePoint(newPoints[nextWallIndex], newPoints[afterNextIndex]) || isSamePoint(newPoints[wallIndex], newPoints[prevIndex])) {
+    const [x0, y0] = newSurfacePoints[wallIndex];
+    const [x1, y1] = newSurfacePoints[nextWallIndex];
+    newSurfacePoints[wallIndex] = [x0 + dA[0], y0 + dA[1]];
+    newSurfacePoints[nextWallIndex] = [x1 + dB[0], y1 + dB[1]];
+    if (isSamePoint(newSurfacePoints[nextWallIndex], newSurfacePoints[afterNextIndex]) || isSamePoint(newSurfacePoints[wallIndex], newSurfacePoints[prevIndex])) {
       // same point, do not update
       return
     };
 
-    if (isSurfaceIntersecting(newPoints)) {
-      // surface is intersecting, do not update
-      return;
-    }
     
-    setSurface((current) => ({
+    
+    setSurface((current) => {
+      const newPoints = [
+        ...current.points.slice(0, surfaceIndex),
+        newSurfacePoints,
+        ...current.points.slice(surfaceIndex + 1),
+      ];
+
+      if (isSurfaceIntersecting(newPoints.flat())) {
+        // surface is intersecting, do not update
+        return current;
+      }
+      return{
         ...current,
         points: newPoints,
-    }), true);
+      };
+    }, true);
   }
 
   const handleDragCornerMove = (e: Konva.KonvaEventObject<DragEvent>, diff: Point) => {
     if (state.mode !== 'edit-corner' || pointsCopy.current === null) return;
-    const { wallIndex } = state;
-    const newPoints = [...pointsCopy.current];
+    const { wallIndex, surfaceIndex } = state;
+    const newSurfacePoints = [...pointsCopy.current[surfaceIndex]];
 
-    const [x0, y0] = newPoints[wallIndex];
-    newPoints[wallIndex] = [x0 + diff[0], y0 + diff[1]];
+    const [x0, y0] = newSurfacePoints[wallIndex];
+    newSurfacePoints[wallIndex] = [x0 + diff[0], y0 + diff[1]];
 
+    setSurface((current) => {
+      const newPoints = [
+        ...current.points.slice(0, surfaceIndex),
+        newSurfacePoints,
+        ...current.points.slice(surfaceIndex + 1),
+      ];
 
-    if (isSurfaceIntersecting(newPoints)) {
-      // surface is intersecting, do not update
-      return;
-    }
+      if (isSurfaceIntersecting(newPoints.flat())) {
+        // surface is intersecting, do not update
+        return current;
+      }
 
-    setSurface((current) => ({
+      return {
         ...current,
         points: newPoints,
-    }));
+      } 
+    }, true);
   }
 
   const handleMouseDown = (e: Konva.KonvaEventObject<MouseEvent | TouchEvent>) => {
@@ -385,7 +410,7 @@ export const Planner: React.FC<PlannerProps> = ({ width, height }) => {
         [adjustedPos.x, adjustedPos.y],
         [adjustedPos.x, adjustedPos.y],
       ];
-      const newSurface: TemporarySurface = { id, points, state: "valid", pattern: surface.pattern, idle: true };
+      const newSurface: TemporarySurface = { id, points: points, state: "valid", idle: true };
       setCurrentSurface(newSurface);
     } else if (state.mode === 'draw-walls') {
       const stage = e.currentTarget.getStage();
@@ -450,7 +475,7 @@ export const Planner: React.FC<PlannerProps> = ({ width, height }) => {
       setCurrentSurface({
         ...currentSurface,
         points,
-        state: validateSurfaceOperation(surface.points, points, state.mode) ? "valid" : "error",
+        state: validateSurfaceOperation(surface.points, [points], state.mode) ? "valid" : "error",
         idle: false,
       });
     } else if (state.mode === 'draw-walls') {
@@ -472,7 +497,7 @@ export const Planner: React.FC<PlannerProps> = ({ width, height }) => {
       if (!currentSurface) return;
       // first rectangle: just add
       if (surface.points.length === 0) {
-        if (getSurfaceArea(currentSurface.points) < 100) {
+        if (getSurfaceArea([currentSurface.points]) < 100) {
           currentSurface.points = [
             currentSurface.points[0],
             [currentSurface.points[0][0] + 100, currentSurface.points[0][1]],
@@ -480,7 +505,7 @@ export const Planner: React.FC<PlannerProps> = ({ width, height }) => {
             [currentSurface.points[0][0], currentSurface.points[0][1] + 100]
           ]
         }
-        setSurface({...currentSurface, points: unionSurfaces([], currentSurface.points)[0]});
+        setSurface(c => ({...c, id: uuid(), points: unionSurfaces([], [currentSurface.points])}));
         setCurrentSurface(null);
         return;
       }
@@ -493,13 +518,16 @@ export const Planner: React.FC<PlannerProps> = ({ width, height }) => {
       if (state.mode === "add-surface") { 
         setSurface((current) => ({
           ...current,
-          points: unionSurfaces(current.points, currentSurface.points)[0],
+          points: unionSurfaces(current.points, [currentSurface.points]),
         }));
       } else if (state.mode === "subtract-surface") {
-        setSurface((current) => ({
-          ...current,
-          points: subtractSurfaces(current.points, currentSurface.points)[0],
-        }));
+        setSurface((current) => {
+          const surfaces = subtractSurfaces(current.points, [currentSurface.points]);
+          return {
+            ...current,
+            points: surfaces
+          }
+        });
       }
       
       setCurrentSurface(null);
@@ -554,17 +582,17 @@ export const Planner: React.FC<PlannerProps> = ({ width, height }) => {
     // If there's an existing surface, merge with it
     if (surface.points.length > 0) {
       try {
-        const unionResult = unionSurfaces(surface.points, drawingPoints);
+        const unionResult = unionSurfaces(surface.points, [drawingPoints]);
         if (unionResult && unionResult.length > 0 && unionResult[0].length > 0) {
           setSurface((current) => ({
             ...current,
-            points: unionResult[0],
+            points: unionResult,
           }));
         } else {
           // If union fails, just replace the surface
           setSurface((current) => ({
             ...current,
-            points: toClockwise(drawingPoints),
+            points: toClockwise([drawingPoints]),
           }));
         }
       } catch (error) {
@@ -572,14 +600,14 @@ export const Planner: React.FC<PlannerProps> = ({ width, height }) => {
         // Fallback: just replace the surface
         setSurface((current) => ({
           ...current,
-          points: toClockwise(drawingPoints),
+          points: toClockwise([drawingPoints]),
         }));
       }
     } else {
       // No existing surface, create new one
       setSurface({
         id: uuid(),
-        points: toClockwise(drawingPoints),
+        points: toClockwise([drawingPoints]),
         pattern: surface.pattern,
       });
     }
@@ -592,11 +620,19 @@ export const Planner: React.FC<PlannerProps> = ({ width, height }) => {
     dispatch({ type: 'default' });
   };
 
-  const removePoints = (indexes: number[]) => {
-    setSurface((current) => ({
-      ...current,
-      points: current.points.filter((_, i) => !indexes.includes(i)),
-    }));
+  const removePoints = (surfaceIndex: number, indexes: number[]) => {
+    setSurface((current) => {
+      const points = [...current.points[surfaceIndex]];
+      points.splice(indexes[0], 1);
+      return {
+        ...current,
+        points: [
+          ...current.points.slice(0, surfaceIndex),
+          points,
+          ...current.points.slice(surfaceIndex + 1),
+        ],
+      };
+    });
     dispatch({ type: 'default' });
   }
 
@@ -606,16 +642,11 @@ export const Planner: React.FC<PlannerProps> = ({ width, height }) => {
   }
   
 
-  const isRightAngle = (points: [Point, Point, Point]) => { 
-    const [a, b, c] = points;
-    if (a[0] === b[0] && b[1] === c[1]) return true; 
-    if (a[1] === b[1] && b[0] === c[0]) return true;
-    return false;
-  }
 
-  const makeAngleRight = (prevIdx: number, idx: number, nxtIdx: number) => { 
+
+  const makeAngleRight = (surfaceIndex: number, prevIdx: number, idx: number, nxtIdx: number) => { 
     setSurface((current) => {
-      const points = [...current.points];
+      const points = [...current.points[surfaceIndex]];
       const prev = points[prevIdx];
       const curr = points[idx];
       const next = points[nxtIdx];
@@ -633,15 +664,16 @@ export const Planner: React.FC<PlannerProps> = ({ width, height }) => {
 
       return {
         ...current,
-        points,
+        points: [
+          ...current.points.slice(0, surfaceIndex),
+          points,
+          ...current.points.slice(surfaceIndex + 1),
+        ],
       }
     });
   }
 
   const [globalScale, setGlobalScale] = React.useState(100);
-
-  const deletionDisabled = surface.points.length <= 3;
-
 
   const handleSurfaceEditorSubmit = (pattern: Pattern) => {
     setSurface((current) => ({
@@ -691,10 +723,10 @@ export const Planner: React.FC<PlannerProps> = ({ width, height }) => {
     }
   }, [setSurface])
 
-  const handleWallDimensionChange = (wallIndex: number, newLength: number) => {
+  const handleWallDimensionChange = (surfaceIndex: number, wallIndex: number, newLength: number) => {
     setSurface((current) => {
       const newPoints = adjustSurfaceForWallChange(
-        current.points,
+        current.points[surfaceIndex],
         wallIndex,
         newLength,
         0.01, // scale factor
@@ -708,7 +740,11 @@ export const Planner: React.FC<PlannerProps> = ({ width, height }) => {
 
       return {
         ...current,
-        points: newPoints,
+        points: [
+          ...current.points.slice(0, surfaceIndex),
+          newPoints,
+          ...current.points.slice(surfaceIndex + 1),
+        ],
       };
     });
   };
@@ -730,8 +766,8 @@ export const Planner: React.FC<PlannerProps> = ({ width, height }) => {
         const data = JSON.parse(event.target?.result as string);
         if (data && data.points && Array.isArray(data.points) && data.pattern) {
           setSurface({
-            id: data.id || Date.now().toString(),
-            points: data.points,
+            ...data,
+            points: Array.isArray(data.points[0][0]) ? data.points : [data.points], // ensure points is an array of arrays
             pattern: data.pattern,
           });
         } else {
@@ -956,8 +992,8 @@ export const Planner: React.FC<PlannerProps> = ({ width, height }) => {
             component={ref => 
               <ToolbarButton 
                 ref={ref}
-                disabled={isRightAngle([surface.points[state.prevWallIndex], surface.points[state.wallIndex], surface.points[state.nextWallIndex]])} 
-                onClick={() => makeAngleRight(state.prevWallIndex, state.wallIndex, state.nextWallIndex)} 
+                disabled={isRightAngle([surface.points[state.surfaceIndex][state.prevWallIndex], surface.points[state.surfaceIndex][state.wallIndex], surface.points[state.surfaceIndex][state.nextWallIndex]])} 
+                onClick={() => makeAngleRight(state.surfaceIndex,state.prevWallIndex, state.wallIndex, state.nextWallIndex)} 
                 wide={!isTouchDevice}
                 icon={<RightAngle />}
                 className="w-10 h-10 md:w-auto md:h-auto"
@@ -971,8 +1007,8 @@ export const Planner: React.FC<PlannerProps> = ({ width, height }) => {
               <ToolbarButton 
                 ref={ref} 
                 variant="danger" 
-                disabled={deletionDisabled} 
-                onClick={() => removePoints([state.wallIndex])} 
+                disabled={surface.points[state.surfaceIndex].length <= 3} 
+                onClick={() => removePoints(state.surfaceIndex, [state.wallIndex])} 
                 wide={!isTouchDevice}
                 icon={<Trash2 />}
                 className="w-10 h-10 md:w-auto md:h-auto"
@@ -997,7 +1033,7 @@ export const Planner: React.FC<PlannerProps> = ({ width, height }) => {
                 ref={ref} 
                 variant="danger" 
                 disabled={true} 
-                onClick={() => removePoints([state.nextWallIndex])} 
+                onClick={() => removePoints(state.surfaceIndex,[state.nextWallIndex])} 
                 wide={!isTouchDevice}
                 icon={<Trash2 />}
                 className="w-10 h-10 md:w-auto md:h-auto"
@@ -1119,71 +1155,81 @@ export const Planner: React.FC<PlannerProps> = ({ width, height }) => {
               closed
             />
           )}
-          {surface.points.map((pt, i) => {
-            const nxt = surface.points[(i + 1) % surface.points.length];
-            const prev = surface.points[(i - 1 + surface.points.length) % surface.points.length];
-            const key = getWallKey(pt, nxt);
-
-            const { interiorAngleMagnitudeDeg, angleRadPtNxt } = getAngles([prev, pt, nxt]);
-            // For Konva Arc:
-            // `rotation` is the start angle of the sweep (in degrees).
-            // `angle` is the sweep extent (in degrees). Arc is drawn CW by default for positive `angle`.
-            // To draw the interior angle (which is a CCW sweep from pt->nxt to pt->prev for a CCW polygon):
-            // Start the Arc sweep at the orientation of vector (pt->nxt).
-            // Sweep CCW by `interiorAngleMagnitudeDeg` (by providing a negative angle to Konva).
-            const rotationStartDeg = (angleRadPtNxt * 180) / Math.PI;
-            const sweepAngleDeg = interiorAngleMagnitudeDeg; 
-
-            // Condition to show the angle marker (e.g., hide for 0, 90, 180, 270 degrees)
-            // We use the positive magnitude of the calculated interior angle for this check.
-            const isNonRightAngle = interiorAngleMagnitudeDeg % 90 !== 0 && interiorAngleMagnitudeDeg !== 0;
-
+          {surface.points.map((surfacePlane, surfaceIndex) => {
             return (
-              <React.Fragment key={key}>
-                {editable && <EdgeEdit 
-                  id={key}
-                  wallIndex={i} 
-                  pointA={pt} 
-                  pointB={nxt} 
-                  edit={state.mode === 'edit-wall' && i === state.wallIndex} 
-                  disabled={!editable}
-                  onClick={(p, idx) => dispatch({type: 'edit-wall', payload: { wallIndex: idx}})}
-                />}
-                <WallDimension
-                  pointA={pt}
-                  pointB={nxt}
-                  scale={0.01}
-                />
-                {isNonRightAngle && (
-                  <AngleMarker x={pt[0]} y={pt[1]} angle={sweepAngleDeg} rotation={rotationStartDeg} />
-                )}
-                {/* <PatternDistance 
-                  pointA={pt} 
-                  pointB={nxt} 
-                  pattern={surface.pattern}
-                /> */}
+              <React.Fragment key={surfaceIndex}>
+                {surfacePlane.map((pt, i) => {
+                  const nxt = surface.points[surfaceIndex][(i + 1) % surface.points[surfaceIndex].length];
+                  const prev = surface.points[surfaceIndex][(i - 1 + surface.points[surfaceIndex].length) % surface.points[surfaceIndex].length];
+                  const key = getWallKey(pt, nxt);
+
+                  const { interiorAngleMagnitudeDeg, angleRadPtNxt } = getAngles([prev, pt, nxt]);
+                  // For Konva Arc:
+                  // `rotation` is the start angle of the sweep (in degrees).
+                  // `angle` is the sweep extent (in degrees). Arc is drawn CW by default for positive `angle`.
+                  // To draw the interior angle (which is a CCW sweep from pt->nxt to pt->prev for a CCW polygon):
+                  // Start the Arc sweep at the orientation of vector (pt->nxt).
+                  // Sweep CCW by `interiorAngleMagnitudeDeg` (by providing a negative angle to Konva).
+                  const rotationStartDeg = (angleRadPtNxt * 180) / Math.PI;
+                  const sweepAngleDeg = interiorAngleMagnitudeDeg; 
+
+                  // Condition to show the angle marker (e.g., hide for 0, 90, 180, 270 degrees)
+                  // We use the positive magnitude of the calculated interior angle for this check.
+                  const isNonRightAngle = interiorAngleMagnitudeDeg % 90 !== 0 && interiorAngleMagnitudeDeg !== 0;
+
+                  return (
+                    <React.Fragment key={key}>
+                      {editable && <EdgeEdit 
+                        id={key}
+                        wallIndex={i} 
+                        pointA={pt} 
+                        pointB={nxt} 
+                        edit={state.mode === 'edit-wall' && i === state.wallIndex} 
+                        disabled={!editable}
+                        onClick={(p, idx) => dispatch({type: 'edit-wall', payload: { wallIndex: idx, surfaceIndex }})}
+                      />}
+                      <WallDimension
+                        pointA={pt}
+                        pointB={nxt}
+                        scale={0.01}
+                      />
+                      {isNonRightAngle && (
+                        <AngleMarker x={pt[0]} y={pt[1]} angle={sweepAngleDeg} rotation={rotationStartDeg} />
+                      )}
+                      {/* <PatternDistance 
+                        pointA={pt} 
+                        pointB={nxt} 
+                        pattern={surface.pattern}
+                      /> */}
+                    </React.Fragment>
+                  );
+                })}
               </React.Fragment>
-            );
+            )
           })}
-          {editable && surface.points.map((pt, i) => {
+          {editable && surface.points.map((surfacePlane, surfaceIndex) => {
             return (
-              <CornerEdit
-                key={i}
-                x={pt[0]}
-                y={pt[1]}
-                wallIndex={i}
-                edit={state.mode === 'edit-corner' && i === state.wallIndex}
-                onClick={(idx) => dispatch({ type: 'edit-corner', payload: { wallIndex: idx } })}
-                onDragStart={handleDragStart}
-                onDragEnd={handleDragEnd}
-                onDragMove={handleDragCornerMove}
-              />
+              <React.Fragment key={surfaceIndex}>
+                {surfacePlane.map((pt, i) => (
+                  <CornerEdit
+                    key={`${surfaceIndex}_${i}`}
+                    x={pt[0]}
+                    y={pt[1]}
+                    wallIndex={i}
+                    edit={state.mode === 'edit-corner' && i === state.wallIndex && surfaceIndex === state.surfaceIndex}
+                    onClick={(idx) => dispatch({ type: 'edit-corner', payload: { wallIndex: idx, surfaceIndex } })}
+                    onDragStart={handleDragStart}
+                    onDragEnd={handleDragEnd}
+                    onDragMove={handleDragCornerMove}
+                  />
+                ))}
+              </React.Fragment>
             )
           })}
           {state.mode === 'edit-wall' && (state.isHorizontal || state.isVertical) ? (
               <MoveHandler 
-                pointA={surface.points[state.wallIndex!]}
-                pointB={surface.points[state.nextWallIndex!]}
+                pointA={surface.points[state.surfaceIndex][state.wallIndex!]}
+                pointB={surface.points[state.surfaceIndex][state.nextWallIndex!]}
                 orientation={state.isHorizontal ? "horizontal" : "vertical"}
                 onDragStart={handleDragStart}
                 onDragMove={handleWallDragMove}
@@ -1293,14 +1339,14 @@ export const Planner: React.FC<PlannerProps> = ({ width, height }) => {
       </Stage>
       {state.mode === 'edit-wall' && (
         <WallDimensionInput
-          pointA={surface.points[state.wallIndex]}
-          pointB={surface.points[(state.wallIndex + 1) % surface.points.length]}
+          pointA={surface.points[state.surfaceIndex][state.wallIndex]}
+          pointB={surface.points[state.surfaceIndex][(state.wallIndex + 1) % surface.points[state.surfaceIndex].length]}
           scale={0.01}
           autoFocus={!isTouchDevice}
           key={state.wallIndex}
           globalScale={globalScale}
           stagePosition={stageRef.current?.position() || { x: 0, y: 0 }}
-          onDimensionChange={(newLength) => handleWallDimensionChange(state.wallIndex, newLength)}
+          onDimensionChange={(newLength) => handleWallDimensionChange(state.surfaceIndex,state.wallIndex, newLength)}
           keepRightAngles={keepRightAngles}
           onKeepRightAnglesChange={setKeepRightAngles}
         />

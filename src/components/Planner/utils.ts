@@ -8,9 +8,9 @@ const pathPointToShapePoint = (point: Point): ShapePoint => ({
 });
 
 const shapePointToPathPoint = (point: ShapePoint): Point => [point.X, point.Y];
-const pathPointsToShape = (points: Point[]): Shape => new Shape([points.map(pathPointToShapePoint)], true);
+const pathPointsToShape = (shapes: Point[][]): Shape => new Shape(shapes.map(s => s.map(pathPointToShapePoint)), true);
 
-export const unionSurfaces = (pointsA: Point[], pointsB: Point[]): Point[][] => {
+export const unionSurfaces = (pointsA: Point[][], pointsB: Point[][]): Point[][] => {
   const shapeA = pathPointsToShape(pointsA)
   const shapeB = pathPointsToShape(pointsB);
 
@@ -18,7 +18,7 @@ export const unionSurfaces = (pointsA: Point[], pointsB: Point[]): Point[][] => 
   return unionShape.paths.map(p => p.map(shapePointToPathPoint));
 }
 
-export const subtractSurfaces = (pointsA: Point[], pointsB: Point[]): Point[][] => {
+export const subtractSurfaces = (pointsA: Point[][], pointsB: Point[][]): Point[][] => {
   const shapeA = pathPointsToShape(pointsA)
   const shapeB = pathPointsToShape(pointsB);
 
@@ -26,32 +26,27 @@ export const subtractSurfaces = (pointsA: Point[], pointsB: Point[]): Point[][] 
   return subtractedShape.paths.map(p => p.map(shapePointToPathPoint));
 }
 
-export const pointInSurface = (point: Point, surface: Point[]): boolean => {
+export const pointInSurface = (point: Point, surface: Point[][]): boolean => {
   const shape = pathPointsToShape(surface);
   return shape.pointInShape(pathPointToShapePoint(point));
 } 
 
-export const getSurfaceArea = (surface: Point[]): number => {
-  if (surface.length < 3) return 0; // Not a valid polygon
+export const getSurfaceArea = (surface: Point[][]): number => {
+  // if (surface.length < 3) return 0; // Not a valid polygon
   const shape = pathPointsToShape(surface);
   return Math.abs(shape.totalArea());
 }
 
-export const toClockwise = (points: Point[]): Point[] => {
+export const toClockwise = (points: Point[][]): Point[][] => {
   const shape = pathPointsToShape(points);
   shape.fixOrientation();
-  return shape.paths[0].map(shapePointToPathPoint);
+  return shape.paths.map(p => p.map(shapePointToPathPoint));
 }
 
-export const doSurfacesIntersect = (surfaceA: Point[], surfaceB: Point[]): boolean => {
-  // If surfaces have less than 3 points, they're not valid polygons
-  if (surfaceA.length < 3 || surfaceB.length < 3) {
-    return false;
-  }
-
+export const doSurfacesIntersect = (surfaceA: Point[][], surfaceB: Point[][]): boolean => {
   // Fast bounding box check first - if bounding boxes don't overlap, surfaces can't intersect
-  const boxA = getBoundingBox(surfaceA);
-  const boxB = getBoundingBox(surfaceB);
+  const boxA = getBoundingBox(surfaceA[0]);
+  const boxB = getBoundingBox(surfaceB[0]);
   
   // Check if bounding boxes overlap
   if (boxA.x + boxA.width < boxB.x || 
@@ -62,21 +57,17 @@ export const doSurfacesIntersect = (surfaceA: Point[], surfaceB: Point[]): boole
   }
   
   // Use clipper-js for precise intersection detection
-  try {
-    const shapeA = pathPointsToShape(surfaceA);
-    const shapeB = pathPointsToShape(surfaceB);
-    
-    // Calculate intersection - if result has any paths, surfaces intersect
-    const intersection = shapeA.intersect(shapeB);
-    return intersection.paths.length > 0 && intersection.totalArea() > Number.EPSILON;
-  } catch (error) {
-    // Fallback to point-in-polygon and edge intersection checks
-    console.warn('Clipper-js intersection failed, using fallback method:', error);
-    return doSurfacesIntersectFallback(surfaceA, surfaceB);
-  }
+  
+  const shapeA = pathPointsToShape(surfaceA);
+  const shapeB = pathPointsToShape(surfaceB);
+  
+  // Calculate intersection - if result has any paths, surfaces intersect
+  const intersection = shapeA.intersect(shapeB);
+  return intersection.paths.length > 0 && intersection.totalArea() > Number.EPSILON;
+  
 }
 
-export const pointInPath = (point: Point, path: Point[]): boolean => {
+export const pointInPath = (point: Point, path: Point[][]): boolean => {
   const shape = pathPointsToShape(path);
   return shape.pointInPath(0, pathPointToShapePoint(point));
 };
@@ -402,48 +393,14 @@ export const drawPattern = (pattern: Pattern, options: DrawPatternOptions = {}) 
   return canvas;
 }
 
-// Fallback method for surface intersection detection without clipper-js
-const doSurfacesIntersectFallback = (surfaceA: Point[], surfaceB: Point[]): boolean => {
-  // Check if any point of surfaceA is inside surfaceB
-  for (const point of surfaceA) {
-    if (pointInSurface(point, surfaceB)) {
-      return true;
-    }
-  }
-  
-  // Check if any point of surfaceB is inside surfaceA
-  for (const point of surfaceB) {
-    if (pointInSurface(point, surfaceA)) {
-      return true;
-    }
-  }
-  
-  // Check if any edge of surfaceA intersects with any edge of surfaceB
-  for (let i = 0; i < surfaceA.length; i++) {
-    const a1 = surfaceA[i];
-    const a2 = surfaceA[(i + 1) % surfaceA.length];
-    
-    for (let j = 0; j < surfaceB.length; j++) {
-      const b1 = surfaceB[j];
-      const b2 = surfaceB[(j + 1) % surfaceB.length];
-      
-      if (doLinesIntersect(a1, a2, b1, b2)) {
-        return true;
-      }
-    }
-  }
-  
-  return false;
-};
-
 /**
  * Checks if two surfaces are completely separate (optimized check)
  * Returns true if surfaces definitely don't intersect, false if they might intersect
  */
-export const areSurfacesDisjoint = (surfaceA: Point[], surfaceB: Point[]): boolean => {
+export const areSurfacesDisjoint = (surfaceA: Point[][], surfaceB: Point[][]): boolean => {
   // Fast bounding box check
-  const boxA = getBoundingBox(surfaceA);
-  const boxB = getBoundingBox(surfaceB);
+  const boxA = getBoundingBox(surfaceA[0]);
+  const boxB = getBoundingBox(surfaceB[0]);
   
   // If bounding boxes don't overlap, surfaces are definitely disjoint
   return (boxA.x + boxA.width < boxB.x || 
@@ -456,7 +413,7 @@ export const areSurfacesDisjoint = (surfaceA: Point[], surfaceB: Point[]): boole
  * Calculates the intersection area between two surfaces
  * Returns 0 if surfaces don't intersect
  */
-export const getSurfaceIntersectionArea = (surfaceA: Point[], surfaceB: Point[]): number => {
+export const getSurfaceIntersectionArea = (surfaceA: Point[][], surfaceB: Point[][]): number => {
   // Quick disjoint check
   if (areSurfacesDisjoint(surfaceA, surfaceB)) {
     return 0;
