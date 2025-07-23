@@ -1,6 +1,6 @@
 import React, { useEffect, useMemo } from "react";
 import { Pattern, Point } from "./types";
-import { Group, Line, Shape } from "react-konva";
+import { Group, Shape } from "react-konva";
 import { removeCustomCursor, setGrabbingCursor, setGrabCursor, setPointerCursor } from "./domUtils";
 import { createPatternCanvas, drawPattern} from "./utils";
 import Konva from "konva";

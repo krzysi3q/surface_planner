@@ -1,6 +1,6 @@
 import { Stage, Layer, Line } from "react-konva";
 import React, { useMemo, useRef } from "react";
-import type { SurfaceType, Point, Pattern } from "./types";
+import type { Point, Pattern } from "./types";
 import { Download, Hand, PencilRuler, Redo, Save, SplinePointer, SquaresSubtract, SquaresUnite, Trash2, Undo, Upload, Waypoints, ZoomIn, ZoomOut } from 'lucide-react'
 import { RightAngle } from "@/components/Icons/RightAngle";
 import { v4 as uuid} from 'uuid'
