@@ -1,9 +1,6 @@
 {
   "app": {
     "title": "HandyLay - Surface Planner",
-    "name": "Handy Lay",
-    "description": "Create and design your perfect apartment floor or wall with interactive walls and tile layouts.",
-    "tagline": "Your friendly tile and panel layout planner",
     "icon": "App Icon"
   },
   "home": {
@@ -79,10 +76,7 @@
     "title": "Touch Devices Not Supported",
     "description": "This Planner currently requires a desktop or laptop computer with a mouse for precise drawing and editing operations.",
     "requirement": "Please use a desktop or laptop computer",
-    "futureSupport": "Touch device support is planned for future updates",
-    "shortDescription": "This Planner requires precise mouse interactions for drawing and editing. Please use a desktop or laptop computer for the best experience.",
-    "recommendation": "Desktop/laptop recommended",
-    "gotIt": "Got it"
+    "futureSupport": "Touch device support is planned for future updates"
   },
   "planner": {
     "patternEditor": {
@@ -137,6 +131,20 @@
       "mm": "mm",
       "m": "m",
       "deg": "°"
+    },
+    "notifications": {
+      "saveSuccess": "Surface saved to browser successfully",
+      "saveError": "Failed to save surface to browser",
+      "downloadSuccess": "Surface downloaded successfully",
+      "downloadError": "Failed to download surface",
+      "uploadSuccess": "Surface uploaded successfully",
+      "uploadError": "Failed to upload surface file",
+      "invalidFormat": "Invalid surface file format",
+      "invalidOperation": "Invalid operation - surface overlaps or is outside bounds",
+      "unionError": "Failed to merge surfaces - using fallback",
+      "undoSuccess": "Action undone",
+      "redoSuccess": "Action redone",
+      "shouldConnect": "Walls should connect to existing surface"
     }
   },
   "language": {

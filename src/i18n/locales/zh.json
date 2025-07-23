@@ -1,9 +1,6 @@
 {
   "app": {
     "title": "HandyLay - 表面规划师",
-    "name": "Handy Lay",
-    "description": "使用交互式墙面和瓷砖布局创建和设计完美的公寓地板或墙面。",
-    "tagline": "您友好的瓷砖和面板布局规划师",
     "icon": "应用图标"
   },
   "home": {
@@ -79,10 +76,7 @@
     "title": "不支持触摸设备",
     "description": "此规划师目前需要配备鼠标的台式机或笔记本电脑进行精确的绘图和编辑操作。",
     "requirement": "请使用台式机或笔记本电脑",
-    "futureSupport": "触摸设备支持计划在未来更新中提供",
-    "shortDescription": "此规划师需要精确的鼠标交互进行绘图和编辑。请使用台式机或笔记本电脑以获得最佳体验。",
-    "recommendation": "推荐台式机/笔记本电脑",
-    "gotIt": "知道了"
+    "futureSupport": "触摸设备支持计划在未来更新中提供"
   },
   "planner": {
     "patternEditor": {
@@ -137,6 +131,20 @@
       "mm": "毫米",
       "m": "米",
       "deg": "°"
+    },
+    "notifications": {
+      "saveSuccess": "表面已保存到浏览器",
+      "saveError": "保存表面到浏览器失败",
+      "downloadSuccess": "表面下载成功",
+      "downloadError": "下载表面失败",
+      "uploadSuccess": "表面上传成功",
+      "uploadError": "上传表面文件失败",
+      "invalidFormat": "表面文件格式无效",
+      "invalidOperation": "无效操作 - 表面重叠或超出边界",
+      "unionError": "合并表面失败 - 使用备用方法",
+      "undoSuccess": "已撤销操作",
+      "redoSuccess": "已重做操作",
+      "shouldConnect": "墙面应连接到现有表面"
     }
   },
   "language": {

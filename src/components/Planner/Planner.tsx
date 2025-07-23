@@ -27,6 +27,7 @@ import { ResizePlanner } from "./ResizePlanner";
 import { CursorArrows } from "../CursorArrows";
 import { Tooltip } from "../Tooltip";
 import { TouchInstructions } from "../TouchInstructions";
+import { NotificationProvider, NotificationContainer, useNotification } from "../Notification";
 
 type TemporarySurface = {
   state: "error" | "valid";
@@ -126,6 +127,7 @@ const isRightAngle = (points: [Point, Point, Point]) => {
 export const Planner: React.FC<PlannerProps> = ({ width, height }) => {
   const { t } = useTranslation();
   const isTouchDevice = useTouchDevice();
+  const { showSuccess, showWarning, showError } = useNotification();
   const { state: surface, set: setSurface, undo, redo, persist, canUndo, canRedo } = useHistoryState<{id: string, points: Point[][], pattern: Pattern}>(loadFromLocalStorage('surface') || { id: uuid(), points: [], pattern: defaultPattern });
   const [ surfaceEditorOpen, setSurfaceEditorOpen ] = React.useState<boolean>(false);
   const [keepRightAngles, setKeepRightAngles] = React.useState<boolean>(true);
@@ -511,6 +513,7 @@ export const Planner: React.FC<PlannerProps> = ({ width, height }) => {
       }
       
       if (currentSurface.state === "error") {
+        showWarning(t('planner.notifications.invalidOperation') || 'Invalid operation - surface overlaps or is outside bounds');
         setCurrentSurface(null);
         return;
       }
@@ -582,21 +585,27 @@ export const Planner: React.FC<PlannerProps> = ({ width, height }) => {
     // If there's an existing surface, merge with it
     if (surface.points.length > 0) {
       try {
-        const unionResult = unionSurfaces(surface.points, [drawingPoints]);
-        if (unionResult && unionResult.length > 0 && unionResult[0].length > 0) {
-          setSurface((current) => ({
-            ...current,
-            points: unionResult,
-          }));
-        } else {
-          // If union fails, just replace the surface
-          setSurface((current) => ({
-            ...current,
-            points: toClockwise([drawingPoints]),
-          }));
+        if (doSurfacesIntersect(surface.points, [drawingPoints])) {
+          const unionResult = unionSurfaces(surface.points, [drawingPoints]);
+          if (unionResult && unionResult.length > 0 && unionResult[0].length > 0) {
+            setSurface((current) => ({
+              ...current,
+              points: unionResult,
+            }));
+          } else {
+            // If union fails, just replace the surface
+            setSurface((current) => ({
+              ...current,
+              points: toClockwise([drawingPoints]),
+            }));
+          }
+        } else { 
+          showError(t('planner.notifications.shouldConnect') || 'Walls should connect to existing surface');
+          return;
         }
       } catch (error) {
         console.error('Union operation failed:', error);
+        showError(t('planner.notifications.unionError') || 'Failed to merge surfaces - using fallback');
         // Fallback: just replace the surface
         setSurface((current) => ({
           ...current,
@@ -750,13 +759,19 @@ export const Planner: React.FC<PlannerProps> = ({ width, height }) => {
   };
 
   const downloadSurface = () => {
-    const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(surface));
-    const downloadAnchorNode = document.createElement("a");
-    downloadAnchorNode.setAttribute("href", dataStr);
-    downloadAnchorNode.setAttribute("download", `surface-${surface.id}.json`);
-    document.body.appendChild(downloadAnchorNode); // required for firefox
-    downloadAnchorNode.click();
-    downloadAnchorNode.remove();
+    try {
+      const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(surface));
+      const downloadAnchorNode = document.createElement("a");
+      downloadAnchorNode.setAttribute("href", dataStr);
+      downloadAnchorNode.setAttribute("download", `surface-${surface.id}.json`);
+      document.body.appendChild(downloadAnchorNode); // required for firefox
+      downloadAnchorNode.click();
+      downloadAnchorNode.remove();
+      showSuccess(t('planner.notifications.downloadSuccess') || 'Surface downloaded successfully');
+    } catch (error) {
+      console.error('Download failed:', error);
+      showError(t('planner.notifications.downloadError') || 'Failed to download surface');
+    }
   }
 
   const uploadSurface = (file: File) => {
@@ -770,11 +785,14 @@ export const Planner: React.FC<PlannerProps> = ({ width, height }) => {
             points: Array.isArray(data.points[0][0]) ? data.points : [data.points], // ensure points is an array of arrays
             pattern: data.pattern,
           });
+          showSuccess(t('planner.notifications.uploadSuccess') || 'Surface uploaded successfully');
         } else {
           console.error("Invalid surface data format");
+          showError(t('planner.notifications.invalidFormat') || 'Invalid surface file format');
         }
       } catch (error) {
         console.error("Error parsing surface data:", error);
+        showError(t('planner.notifications.uploadError') || 'Failed to upload surface file');
       }
     };
     reader.readAsText(file);
@@ -871,7 +889,10 @@ export const Planner: React.FC<PlannerProps> = ({ width, height }) => {
           component={ref => 
             <ToolbarButton 
               ref={ref} 
-              onClick={() => { dispatch({ type: 'default' }); undo(); }} 
+              onClick={() => { 
+                dispatch({ type: 'default' }); 
+                undo(); 
+              }} 
               disabled={!canUndo} 
               icon={<Undo />} 
               className={isTouchDevice ? "w-10 h-10" : ""}
@@ -884,7 +905,10 @@ export const Planner: React.FC<PlannerProps> = ({ width, height }) => {
           component={ref => 
             <ToolbarButton 
               ref={ref} 
-              onClick={() => { dispatch({ type: 'default' }); redo(); }} 
+              onClick={() => { 
+                dispatch({ type: 'default' }); 
+                redo(); 
+              }} 
               disabled={!canRedo} 
               icon={<Redo />} 
               className={isTouchDevice ? "w-10 h-10" : ""}
@@ -898,7 +922,15 @@ export const Planner: React.FC<PlannerProps> = ({ width, height }) => {
           component={ref => 
             <ToolbarButton 
               ref={ref} 
-              onClick={() => saveToLocalStorage('surface', surface)} 
+              onClick={() => {
+                try {
+                  saveToLocalStorage('surface', surface);
+                  showSuccess(t('planner.notifications.saveSuccess') || 'Surface saved to browser');
+                } catch (error) {
+                  console.error('Save failed:', error);
+                  showError(t('planner.notifications.saveError') || 'Failed to save surface');
+                }
+              }} 
               icon={<Save />} 
               className={isTouchDevice ? "w-10 h-10" : ""}
             />
@@ -1356,7 +1388,12 @@ export const Planner: React.FC<PlannerProps> = ({ width, height }) => {
 };
 
 export const DynamicSizePlanner = () => {
-  return <ResizePlanner render={(dimensions) => (
-    <Planner width={dimensions.width} height={dimensions.height} />
-  )} />
+  return (
+    <NotificationProvider>
+      <ResizePlanner render={(dimensions) => (
+        <Planner width={dimensions.width} height={dimensions.height} />
+      )} />
+      <NotificationContainer />
+    </NotificationProvider>
+  );
 }

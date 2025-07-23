@@ -1,9 +1,6 @@
 {
   "app": {
     "title": "HandyLay - Planificador de Superficies",
-    "name": "Handy Lay",
-    "description": "Crea y diseña el suelo o pared perfecta de tu apartamento con paredes interactivas y diseños de azulejos.",
-    "tagline": "Tu planificador amigable de azulejos y paneles",
     "icon": "Icono de la Aplicación"
   },
   "home": {
@@ -79,10 +76,7 @@
     "title": "Dispositivos Táctiles No Compatibles",
     "description": "Este Planificador actualmente requiere una computadora de escritorio o portátil con un ratón para operaciones precisas de dibujo y edición.",
     "requirement": "Por favor, usa una computadora de escritorio o portátil",
-    "futureSupport": "El soporte para dispositivos táctiles está planificado para futuras actualizaciones",
-    "shortDescription": "Este Planificador requiere interacciones precisas con el ratón para dibujar y editar. Por favor, usa una computadora de escritorio o portátil para la mejor experiencia.",
-    "recommendation": "Escritorio/portátil recomendado",
-    "gotIt": "Entendido"
+    "futureSupport": "El soporte para dispositivos táctiles está planificado para futuras actualizaciones"
   },
   "planner": {
     "patternEditor": {
@@ -137,6 +131,20 @@
       "mm": "mm",
       "m": "m",
       "deg": "°"
+    },
+    "notifications": {
+      "saveSuccess": "Superficie guardada en el navegador",
+      "saveError": "Error al guardar la superficie en el navegador",
+      "downloadSuccess": "Superficie descargada correctamente",
+      "downloadError": "Error al descargar la superficie",
+      "uploadSuccess": "Superficie cargada correctamente",
+      "uploadError": "Error al cargar el archivo de superficie",
+      "invalidFormat": "Formato de archivo de superficie inválido",
+      "invalidOperation": "Operación inválida - la superficie se superpone o está fuera de los límites",
+      "unionError": "Error al fusionar superficies - usando método alternativo",
+      "undoSuccess": "Acción deshecha",
+      "redoSuccess": "Acción rehecha",
+      "shouldConnect": "Las paredes deben conectarse a la superficie existente"
     }
   },
   "language": {

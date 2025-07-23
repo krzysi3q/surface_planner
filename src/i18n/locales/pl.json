@@ -1,9 +1,6 @@
 {
   "app": {
     "title": "HandyLay - Planowanie Powierzchni",
-    "name": "Handy Lay",
-    "description": "Twórz i projektuj idealną podłogę lub ścianę swojego mieszkania z interaktywnymi ścianami i układami płytek.",
-    "tagline": "Twój przyjazny planer układu płytek i paneli",
     "icon": "Ikona Aplikacji"
   },
   "home": {
@@ -79,10 +76,7 @@
     "title": "Urządzenia Dotykowe Nie Są Obsługiwane",
     "description": "Ten Planer obecnie wymaga komputera stacjonarnego lub laptopa z myszą do precyzyjnego rysowania i edytowania.",
     "requirement": "Proszę użyć komputera stacjonarnego lub laptopa",
-    "futureSupport": "Obsługa urządzeń dotykowych jest planowana w przyszłych aktualizacjach",
-    "shortDescription": "Ten Planer wymaga precyzyjnych interakcji myszy do rysowania i edytowania. Proszę użyć komputera stacjonarnego lub laptopa dla najlepszego doświadczenia.",
-    "recommendation": "Komputer stacjonarny/laptop zalecany",
-    "gotIt": "Rozumiem"
+    "futureSupport": "Obsługa urządzeń dotykowych jest planowana w przyszłych aktualizacjach"
   },
   "planner": {
     "patternEditor": {
@@ -137,6 +131,20 @@
       "mm": "mm",
       "m": "m",
       "deg": "°"
+    },
+    "notifications": {
+      "saveSuccess": "Powierzchnia zapisana w przeglądarce",
+      "saveError": "Błąd podczas zapisywania powierzchni w przeglądarce",
+      "downloadSuccess": "Powierzchnia została pobrana pomyślnie",
+      "downloadError": "Błąd podczas pobierania powierzchni",
+      "uploadSuccess": "Powierzchnia została wczytana pomyślnie",
+      "uploadError": "Błąd podczas wczytywania pliku powierzchni",
+      "invalidFormat": "Nieprawidłowy format pliku powierzchni",
+      "invalidOperation": "Nieprawidłowa operacja - powierzchnia nachodzi lub jest poza granicami",
+      "unionError": "Błąd podczas łączenia powierzchni - używanie metody zapasowej",
+      "undoSuccess": "Cofnięto akcję",
+      "redoSuccess": "Powtórzono akcję",
+      "shouldConnect": "Ściany powinny łączyć się z istniejącą powierzchnią"
     }
   },
   "language": {
