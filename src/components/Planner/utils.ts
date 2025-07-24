@@ -13,7 +13,7 @@ const pathPointsToShape = (shapes: Point[][]): Shape => new Shape(shapes.map(s =
 export const unionSurfaces = (pointsA: Point[][], pointsB: Point[][]): Point[][] => {
   const shapeA = pathPointsToShape(pointsA)
   const shapeB = pathPointsToShape(pointsB);
-
+  
   const unionShape = shapeA.union(shapeB);
   return unionShape.paths.map(p => p.map(shapePointToPathPoint));
 }
@@ -111,7 +111,7 @@ export const isSurfaceIntersecting = (surface: Point[]): boolean => {
     const a1 = surface[i];
     const a2 = surface[(i + 1) % surface.length]; // Loop back for closed paths
 
-    for (let j = i + 1; j < surface.length; j++) {
+    for (let j = i + 2; j < surface.length; j++) {
       const b1 = surface[j];
       const b2 = surface[(j + 1) % surface.length];
 
@@ -124,6 +124,41 @@ export const isSurfaceIntersecting = (surface: Point[]): boolean => {
       ) {
         continue;
       }
+
+      if (doLinesIntersect(a1, a2, b1, b2)) return true;
+    }
+  }
+
+  return false;
+};
+
+export const areMultipleSurfacesIntersecting = (surfaces: Point[][]): boolean => {
+  // Check self-intersections within each surface
+  for (const surface of surfaces) {
+    if (isSurfaceIntersecting(surface)) return true;
+  }
+
+  // Check cross-surface intersections
+  for (let i = 0; i < surfaces.length; i++) {
+    for (let j = i + 1; j < surfaces.length; j++) {
+      const surfaceA = surfaces[i];
+      const surfaceB = surfaces[j];
+
+      if (arePathsIntersecting(surfaceA, surfaceB)) return true;
+    }
+  }
+
+  return false;
+};
+
+const arePathsIntersecting = (pathA: Point[], pathB: Point[]): boolean => {
+  for (let i = 0; i < pathA.length; i++) {
+    const a1 = pathA[i];
+    const a2 = pathA[(i + 1) % pathA.length];
+
+    for (let j = 0; j < pathB.length; j++) {
+      const b1 = pathB[j];
+      const b2 = pathB[(j + 1) % pathB.length];
 
       if (doLinesIntersect(a1, a2, b1, b2)) return true;
     }

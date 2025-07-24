@@ -10,7 +10,7 @@ import Konva from "konva";
 import { useHistoryState } from "@/hooks/useHistoryState";
 import { useTranslation } from "@/hooks/useTranslation";
 import { useTouchDevice } from "@/hooks/useTouchDevice";
-import { subtractSurfaces, unionSurfaces, isSurfaceIntersecting, saveToLocalStorage, loadFromLocalStorage, getAngles, getSurfaceArea, doSurfacesIntersect, adjustSurfaceForWallChange, toClockwise } from "./utils";
+import { subtractSurfaces, unionSurfaces, isSurfaceIntersecting, saveToLocalStorage, loadFromLocalStorage, getAngles, getSurfaceArea, doSurfacesIntersect, adjustSurfaceForWallChange, toClockwise, areMultipleSurfacesIntersecting } from "./utils";
 import { removeCustomCursor, setGrabbingCursor } from "./domUtils"
 import EdgeEdit from "./EdgeEdit";
 import { MoveHandler } from "./MoveHandler";
@@ -351,7 +351,7 @@ export const Planner: React.FC<PlannerProps> = ({ width, height }) => {
         ...current.points.slice(surfaceIndex + 1),
       ];
 
-      if (isSurfaceIntersecting(newPoints.flat())) {
+      if (areMultipleSurfacesIntersecting(newPoints)) {
         // surface is intersecting, do not update
         return current;
       }
@@ -377,7 +377,7 @@ export const Planner: React.FC<PlannerProps> = ({ width, height }) => {
         ...current.points.slice(surfaceIndex + 1),
       ];
 
-      if (isSurfaceIntersecting(newPoints.flat())) {
+      if (areMultipleSurfacesIntersecting(newPoints)) {
         // surface is intersecting, do not update
         return current;
       }
@@ -1216,7 +1216,7 @@ export const Planner: React.FC<PlannerProps> = ({ width, height }) => {
                         wallIndex={i} 
                         pointA={pt} 
                         pointB={nxt} 
-                        edit={state.mode === 'edit-wall' && i === state.wallIndex} 
+                        edit={state.mode === 'edit-wall' && i === state.wallIndex && surfaceIndex === state.surfaceIndex} 
                         disabled={!editable}
                         onClick={(p, idx) => dispatch({type: 'edit-wall', payload: { wallIndex: idx, surfaceIndex }})}
                       />}
