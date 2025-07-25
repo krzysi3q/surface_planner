@@ -10,6 +10,7 @@ interface EdgeEditProps {
   pointA: Point;
   pointB: Point;
   onClick?: (points: [Point, Point], wallIndex: number) => void;
+  onDoubleClick?: (clickPosition: Point, points: [Point, Point]) => void;
   onMouseEnter?: (e: Konva.KonvaEventObject<MouseEvent>) => void;
   onMouseLeave?: (e: Konva.KonvaEventObject<MouseEvent>) => void;
   wallIndex: number;
@@ -66,13 +67,21 @@ function getRectanglePoints(pointA: Point, pointB: Point, size: number): number[
 }
 
 const EdgeEdit: React.FC<EdgeEditProps> = (props) => {
-  const { pointA, pointB, onClick, onMouseEnter, onMouseLeave, wallIndex, edit, disabled } = props;
+  const { pointA, pointB, onClick, onDoubleClick, onMouseEnter, onMouseLeave, wallIndex, edit, disabled } = props;
   const [state, setState] = React.useState<'default' | 'hover' >('default');
   const isTouchDevice = useTouchDevice();
   
   // Use larger size for touch devices
   const size = isTouchDevice ? 24 : 16;
   const points = useMemo(() => getRectanglePoints(pointA, pointB, size), [pointA, pointB, size]);
+  
+  // State for handling double-click/double-tap detection for both mouse and touch
+  const [lastClickTime, setLastClickTime] = React.useState(0);
+  const [lastClickPosition, setLastClickPosition] = React.useState<Point | null>(null);
+  const [clickTimeoutId, setClickTimeoutId] = React.useState<NodeJS.Timeout | null>(null);
+  
+  const DOUBLE_CLICK_DELAY = 200; // milliseconds
+  const DOUBLE_CLICK_DISTANCE = 20; // pixels
   
   const {handleMouseEnter, handleMouseLeave, handleClick, handleTouchStart } = useMemo(() => ({
     handleMouseEnter: (e: Konva.KonvaEventObject<MouseEvent>) => {
@@ -86,15 +95,60 @@ const EdgeEdit: React.FC<EdgeEditProps> = (props) => {
       setState('default');
       removeCustomCursor(e);
     },
-    handleClick: () => {
-      onClick?.([pointA, pointB], wallIndex);
+    handleClick: (e: Konva.KonvaEventObject<MouseEvent | TouchEvent>) => {
+      if (disabled) return;
+      
+      const stage = e.target.getStage();
+      const pos = stage?.getPointerPosition();
+      if (!pos || !stage) return;
+      
+      const scale = stage.scale();
+      const clickPos: Point = [pos.x / scale.x, pos.y / scale.y];
+      const currentTime = Date.now();
+      
+      // Check if this is a double-click/double-tap
+      if (lastClickTime && 
+          currentTime - lastClickTime < DOUBLE_CLICK_DELAY &&
+          lastClickPosition &&
+          Math.abs(clickPos[0] - lastClickPosition[0]) < DOUBLE_CLICK_DISTANCE && 
+          Math.abs(clickPos[1] - lastClickPosition[1]) < DOUBLE_CLICK_DISTANCE) {
+        // This is a double-click/double-tap
+        
+        // Clear the single-click timeout if it exists
+        if (clickTimeoutId) {
+          clearTimeout(clickTimeoutId);
+          setClickTimeoutId(null);
+        }
+        
+        setLastClickTime(0);
+        setLastClickPosition(null);
+        onDoubleClick?.(clickPos, [pointA, pointB]);
+      } else {
+        // This is a single click - set up timeout for delayed handling
+        setLastClickTime(currentTime);
+        setLastClickPosition(clickPos);
+        
+        // Clear any existing timeout
+        if (clickTimeoutId) {
+          clearTimeout(clickTimeoutId);
+        }
+        
+        // Set timeout to handle single click after double-click delay
+        const timeoutId = setTimeout(() => {
+          if (!edit) {
+            onClick?.([pointA, pointB], wallIndex);
+          }
+          setClickTimeoutId(null);
+        }, DOUBLE_CLICK_DELAY);
+        
+        setClickTimeoutId(timeoutId);
+      }
     },
     handleTouchStart: (e: Konva.KonvaEventObject<TouchEvent>) => {
-      // For touch devices, treat touch start as click
+      // For touch devices, prevent default and let handleClick (onTap) handle it
       e.evt.preventDefault();
-      onClick?.([pointA, pointB], wallIndex);
     }
-  }), [onMouseEnter, edit, disabled, onMouseLeave, onClick, pointA, pointB, wallIndex]);
+  }), [onMouseEnter, edit, disabled, onMouseLeave, onClick, onDoubleClick, pointA, pointB, wallIndex, lastClickTime, lastClickPosition, clickTimeoutId]);
 
   return (
     <Group>

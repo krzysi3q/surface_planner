@@ -144,7 +144,11 @@
       "unionError": "合并表面失败 - 使用备用方法",
       "undoSuccess": "已撤销操作",
       "redoSuccess": "已重做操作",
-      "shouldConnect": "墙面应连接到现有表面"
+      "shouldConnect": "墙面应连接到现有表面",
+      "pointAdded": "已在墙面添加新角点",
+      "tooCloseToCorner": "距离现有角点太近。请尝试点击远离边缘的位置。",
+      "pointAlreadyExists": "此位置附近已存在角点。",
+      "noSurfaceExists": "请先创建表面再添加角点"
     }
   },
   "language": {

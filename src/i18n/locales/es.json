@@ -144,7 +144,11 @@
       "unionError": "Error al fusionar superficies - usando método alternativo",
       "undoSuccess": "Acción deshecha",
       "redoSuccess": "Acción rehecha",
-      "shouldConnect": "Las paredes deben conectarse a la superficie existente"
+      "shouldConnect": "Las paredes deben conectarse a la superficie existente",
+      "pointAdded": "Nueva esquina añadida a la pared",
+      "tooCloseToCorner": "Demasiado cerca de una esquina existente. Intenta hacer clic más lejos de los bordes.",
+      "pointAlreadyExists": "Ya existe una esquina cerca de esta posición.",
+      "noSurfaceExists": "Crea una superficie primero antes de añadir esquinas"
     }
   },
   "language": {

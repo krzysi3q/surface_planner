@@ -10,7 +10,7 @@ import Konva from "konva";
 import { useHistoryState } from "@/hooks/useHistoryState";
 import { useTranslation } from "@/hooks/useTranslation";
 import { useTouchDevice } from "@/hooks/useTouchDevice";
-import { subtractSurfaces, unionSurfaces, isSurfaceIntersecting, saveToLocalStorage, loadFromLocalStorage, getAngles, getSurfaceArea, doSurfacesIntersect, adjustSurfaceForWallChange, toClockwise, areMultipleSurfacesIntersecting } from "./utils";
+import { subtractSurfaces, unionSurfaces, isSurfaceIntersecting, saveToLocalStorage, loadFromLocalStorage, getAngles, getSurfaceArea, doSurfacesIntersect, adjustSurfaceForWallChange, toClockwise, areMultipleSurfacesIntersecting, getClosestPointOnLineSegment, insertPointInWall, getPointDistance } from "./utils";
 import { removeCustomCursor, setGrabbingCursor } from "./domUtils"
 import EdgeEdit from "./EdgeEdit";
 import { MoveHandler } from "./MoveHandler";
@@ -798,6 +798,89 @@ export const Planner: React.FC<PlannerProps> = ({ width, height }) => {
     reader.readAsText(file);
   };
 
+  // Handler for double-click/double-tap on wall to add new point
+  const handleWallDoubleClick = (clickPosition: Point, wallPoints: [Point, Point]) => {
+    // Allow adding points in most modes (but not while drawing walls or subtracting surfaces)
+    if (state.mode === 'draw-walls' || state.mode === 'subtract-surface') {
+      return;
+    }
+
+    // Don't allow if no surface exists
+    if (surface.points.length === 0) {
+      showWarning(t('planner.notifications.noSurfaceExists') || 'Create a surface first before adding corners');
+      return;
+    }
+
+    // Find which surface this wall belongs to
+    let targetSurfaceIndex = -1;
+    let targetWallIndex = -1;
+    
+    for (let i = 0; i < surface.points.length; i++) {
+      const surfacePoints = surface.points[i];
+      for (let j = 0; j < surfacePoints.length; j++) {
+        const currentPoint = surfacePoints[j];
+        const nextPoint = surfacePoints[(j + 1) % surfacePoints.length];
+        
+        // Check if this wall matches the clicked wall (check both directions)
+        if ((isSamePoint(currentPoint, wallPoints[0]) && isSamePoint(nextPoint, wallPoints[1])) ||
+            (isSamePoint(currentPoint, wallPoints[1]) && isSamePoint(nextPoint, wallPoints[0]))) {
+          targetSurfaceIndex = i;
+          targetWallIndex = j;
+          break;
+        }
+      }
+      if (targetSurfaceIndex !== -1) break;
+    }
+
+    if (targetSurfaceIndex === -1) {
+      console.warn('Wall not found for double-click');
+      return; // Wall not found
+    }
+
+    // Calculate the closest point on the wall to where the user clicked
+    const closestPoint = getClosestPointOnLineSegment(clickPosition, wallPoints[0], wallPoints[1]);
+    
+    // Ensure the new point is not too close to existing points
+    const minDistance = 20; // Increased minimum distance to make it easier to place points
+    const [startPoint, endPoint] = wallPoints;
+    const distanceToStart = getPointDistance(closestPoint, startPoint);
+    const distanceToEnd = getPointDistance(closestPoint, endPoint);
+    
+    if (distanceToStart < minDistance || distanceToEnd < minDistance) {
+      showWarning(t('planner.notifications.tooCloseToCorner') || 'Too close to existing corner. Try clicking further from the edges.');
+      return; // Too close to existing points
+    }
+
+    // Check if there are already points very close to this position on the wall
+    const surfacePoints = surface.points[targetSurfaceIndex];
+    for (let i = 0; i < surfacePoints.length; i++) {
+      if (getPointDistance(closestPoint, surfacePoints[i]) < minDistance) {
+        showWarning(t('planner.notifications.pointAlreadyExists') || 'A corner already exists near this position.');
+        return;
+      }
+    }
+
+    // Insert the new point into the surface
+    persist(); // Save current state for undo
+    setSurface(current => ({
+      ...current,
+      points: insertPointInWall(current.points, targetSurfaceIndex, targetWallIndex, closestPoint)
+    }));
+
+    // Automatically select the newly created corner
+    // The new corner is inserted at targetWallIndex + 1
+    const newCornerIndex = targetWallIndex + 1;
+    dispatch({
+      type: 'edit-corner',
+      payload: {
+        wallIndex: newCornerIndex,
+        surfaceIndex: targetSurfaceIndex
+      }
+    });
+
+    showSuccess(t('planner.notifications.pointAdded') || 'New corner added to wall');
+  };
+
   const editable = state.editable && (currentSurface === null || currentSurface?.idle);
   
   return (
@@ -1219,6 +1302,7 @@ export const Planner: React.FC<PlannerProps> = ({ width, height }) => {
                         edit={state.mode === 'edit-wall' && i === state.wallIndex && surfaceIndex === state.surfaceIndex} 
                         disabled={!editable}
                         onClick={(p, idx) => dispatch({type: 'edit-wall', payload: { wallIndex: idx, surfaceIndex }})}
+                        onDoubleClick={handleWallDoubleClick}
                       />}
                       <WallDimension
                         pointA={pt}

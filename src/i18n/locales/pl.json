@@ -144,7 +144,11 @@
       "unionError": "Błąd podczas łączenia powierzchni - używanie metody zapasowej",
       "undoSuccess": "Cofnięto akcję",
       "redoSuccess": "Powtórzono akcję",
-      "shouldConnect": "Ściany powinny łączyć się z istniejącą powierzchnią"
+      "shouldConnect": "Ściany powinny łączyć się z istniejącą powierzchnią",
+      "pointAdded": "Dodano nowy róg do ściany",
+      "tooCloseToCorner": "Za blisko istniejącego rogu. Spróbuj kliknąć dalej od krawędzi.",
+      "pointAlreadyExists": "Róg już istnieje w pobliżu tej pozycji.",
+      "noSurfaceExists": "Najpierw utwórz powierzchnię przed dodawaniem rogów"
     }
   },
   "language": {

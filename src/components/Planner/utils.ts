@@ -604,3 +604,61 @@ export const adjustSurfaceForWallChange = (
   
   return newPoints;
 };
+
+/**
+ * Calculates the closest point on a line segment to a given point
+ */
+export const getClosestPointOnLineSegment = (point: Point, lineStart: Point, lineEnd: Point): Point => {
+  const [px, py] = point;
+  const [x1, y1] = lineStart;
+  const [x2, y2] = lineEnd;
+
+  // Vector from line start to end
+  const dx = x2 - x1;
+  const dy = y2 - y1;
+
+  // If the line segment is actually a point
+  if (dx === 0 && dy === 0) {
+    return lineStart;
+  }
+
+  // Calculate parameter t that represents the position along the line segment
+  // t = 0 means closest point is lineStart, t = 1 means closest point is lineEnd
+  const t = Math.max(0, Math.min(1, ((px - x1) * dx + (py - y1) * dy) / (dx * dx + dy * dy)));
+
+  // Calculate the closest point
+  return [x1 + t * dx, y1 + t * dy];
+};
+
+/**
+ * Inserts a new point into a surface at the specified wall position
+ */
+export const insertPointInWall = (
+  surfacePoints: Point[][],
+  surfaceIndex: number,
+  wallIndex: number,
+  newPoint: Point
+): Point[][] => {
+  if (surfaceIndex < 0 || surfaceIndex >= surfacePoints.length) {
+    return surfacePoints;
+  }
+
+  const surface = surfacePoints[surfaceIndex];
+  if (wallIndex < 0 || wallIndex >= surface.length) {
+    return surfacePoints;
+  }
+
+  // Create a new surface with the point inserted after wallIndex
+  const newSurface = [
+    ...surface.slice(0, wallIndex + 1),
+    newPoint,
+    ...surface.slice(wallIndex + 1)
+  ];
+
+  // Return new surfaces array with the updated surface
+  return [
+    ...surfacePoints.slice(0, surfaceIndex),
+    newSurface,
+    ...surfacePoints.slice(surfaceIndex + 1)
+  ];
+};
