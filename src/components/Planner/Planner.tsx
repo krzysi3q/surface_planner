@@ -128,7 +128,104 @@ export const Planner: React.FC<PlannerProps> = ({ width, height }) => {
   const { t } = useTranslation();
   const isTouchDevice = useTouchDevice();
   const { showSuccess, showWarning, showError } = useNotification();
-  const { state: surface, set: setSurface, undo, redo, persist, canUndo, canRedo } = useHistoryState<{id: string, points: Point[][], pattern: Pattern}>(loadFromLocalStorage('surface') || { id: uuid(), points: [], pattern: defaultPattern });
+  
+  const getDefaultSurface = () => {
+    const centerX = width / 2;
+    const centerY = height / 2;
+    const size = 200;
+    const halfSize = size / 2;
+    
+    // Create a simple square tile pattern
+    const tileSize = 50;
+    const defaultSquarePattern: Pattern = {
+      gapColor: '#333333',
+      height: tileSize * 2,
+      width: tileSize * 2,
+      x: centerX - tileSize,
+      y: centerY - tileSize,
+      tiles: [
+        {
+          id: uuid(),
+          type: 'square',
+          points: [
+            [0, 0],
+            [tileSize, 0],
+            [tileSize, tileSize],
+            [0, tileSize]
+          ],
+          color: '#e0e0e0',
+          metadata: {
+            angle: 0,
+            centerX: tileSize / 2,
+            centerY: tileSize / 2
+          }
+        },
+        {
+          id: uuid(),
+          type: 'square',
+          points: [
+            [tileSize, 0],
+            [tileSize * 2, 0],
+            [tileSize * 2, tileSize],
+            [tileSize, tileSize]
+          ],
+          color: '#f0f0f0',
+          metadata: {
+            angle: 0,
+            centerX: tileSize * 1.5,
+            centerY: tileSize / 2
+          }
+        },
+        {
+          id: uuid(),
+          type: 'square',
+          points: [
+            [0, tileSize],
+            [tileSize, tileSize],
+            [tileSize, tileSize * 2],
+            [0, tileSize * 2]
+          ],
+          color: '#f0f0f0',
+          metadata: {
+            angle: 0,
+            centerX: tileSize / 2,
+            centerY: tileSize * 1.5
+          }
+        },
+        {
+          id: uuid(),
+          type: 'square',
+          points: [
+            [tileSize, tileSize],
+            [tileSize * 2, tileSize],
+            [tileSize * 2, tileSize * 2],
+            [tileSize, tileSize * 2]
+          ],
+          color: '#e0e0e0',
+          metadata: {
+            angle: 0,
+            centerX: tileSize * 1.5,
+            centerY: tileSize * 1.5
+          }
+        }
+      ],
+      tilesGap: 2,
+      scale: 0.8
+    };
+    
+    return {
+      id: uuid(),
+      points: [[
+        [centerX - halfSize, centerY - halfSize],
+        [centerX + halfSize, centerY - halfSize],
+        [centerX + halfSize, centerY + halfSize],
+        [centerX - halfSize, centerY + halfSize]
+      ]] as Point[][],
+      pattern: defaultSquarePattern
+    };
+  };
+  
+  const { state: surface, set: setSurface, undo, redo, persist, canUndo, canRedo } = useHistoryState<{id: string, points: Point[][], pattern: Pattern}>(loadFromLocalStorage('surface') || getDefaultSurface());
   const [ surfaceEditorOpen, setSurfaceEditorOpen ] = React.useState<boolean>(false);
   const [keepRightAngles, setKeepRightAngles] = React.useState<boolean>(true);
   const stageRef = React.useRef<Konva.Stage>(null);
