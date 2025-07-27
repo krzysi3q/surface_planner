@@ -130,7 +130,11 @@
     "measurements": {
       "mm": "mm",
       "m": "m",
-      "deg": "°"
+      "deg": "°",
+      "surfaceArea": "Surface Area",
+      "perimeter": "Perimeter",
+      "selectedWall": "Selected Wall",
+      "cornerAngle": "Corner Angle"
     },
     "notifications": {
       "saveSuccess": "Surface saved to browser successfully",

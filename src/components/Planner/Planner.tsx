@@ -17,6 +17,7 @@ import { MoveHandler } from "./MoveHandler";
 import { CornerEdit } from "./CornerEdit";
 import { WallDimension } from "./components/WallDimension";
 import { WallDimensionInput } from "./components/WallDimensionInput";
+import { DimensionInfo } from "./components/DimensionInfo";
 import { ReducerStateAddSurface, ReducerStateSubtractSurface, usePlannerReducer } from "./usePlannerReducer";
 import { AngleMarker } from "./AngleMarker";
 import { ToolbarButton } from "../ToolbarButton";
@@ -123,26 +124,20 @@ const isRightAngle = (points: [Point, Point, Point]) => {
   return false;
 }
 
-
-export const Planner: React.FC<PlannerProps> = ({ width, height }) => {
-  const { t } = useTranslation();
-  const isTouchDevice = useTouchDevice();
-  const { showSuccess, showWarning, showError } = useNotification();
-  
-  const getDefaultSurface = () => {
+const getDefaultSurface = (width: number, height: number) => {
     const centerX = width / 2;
     const centerY = height / 2;
     const size = 200;
     const halfSize = size / 2;
     
     // Create a simple square tile pattern
-    const tileSize = 50;
+    const tileSize = 100;
     const defaultSquarePattern: Pattern = {
       gapColor: '#333333',
       height: tileSize * 2,
       width: tileSize * 2,
-      x: centerX - tileSize,
-      y: centerY - tileSize,
+      x: centerX,
+      y: centerY,
       tiles: [
         {
           id: uuid(),
@@ -210,22 +205,29 @@ export const Planner: React.FC<PlannerProps> = ({ width, height }) => {
         }
       ],
       tilesGap: 2,
-      scale: 0.8
+      scale: 0.4
     };
     
     return {
       id: uuid(),
-      points: [[
+      points: toClockwise([[
+        [centerX + halfSize, centerY + halfSize],
+        [centerX - halfSize, centerY + halfSize],
         [centerX - halfSize, centerY - halfSize],
         [centerX + halfSize, centerY - halfSize],
-        [centerX + halfSize, centerY + halfSize],
-        [centerX - halfSize, centerY + halfSize]
-      ]] as Point[][],
+      ]]),
       pattern: defaultSquarePattern
     };
   };
+
+
+export const Planner: React.FC<PlannerProps> = ({ width, height }) => {
+  const { t } = useTranslation();
+  const isTouchDevice = useTouchDevice();
+  const { showSuccess, showWarning, showError } = useNotification();
   
-  const { state: surface, set: setSurface, undo, redo, persist, canUndo, canRedo } = useHistoryState<{id: string, points: Point[][], pattern: Pattern}>(loadFromLocalStorage('surface') || getDefaultSurface());
+  const { state: surface, set: setSurface, undo, redo, persist, canUndo, canRedo } = useHistoryState<{id: string, points: Point[][], pattern: Pattern}>(loadFromLocalStorage('surface') || getDefaultSurface(width, height));
+  const defferdSurfacePoints = React.useDeferredValue(surface.points);
   const [ surfaceEditorOpen, setSurfaceEditorOpen ] = React.useState<boolean>(false);
   const [keepRightAngles, setKeepRightAngles] = React.useState<boolean>(true);
   const stageRef = React.useRef<Konva.Stage>(null);
@@ -781,20 +783,23 @@ export const Planner: React.FC<PlannerProps> = ({ width, height }) => {
 
   const [globalScale, setGlobalScale] = React.useState(100);
 
-  const handleSurfaceEditorSubmit = (pattern: Pattern) => {
-    setSurface((current) => ({
-      ...current,
-      pattern,
-    }));
-    setSurfaceEditorOpen(false);
-  }
+  const { handleSurfaceEditorSubmit, handleSurfaceClick } = useMemo(() => ({
+    handleSurfaceEditorSubmit: (pattern: Pattern) => {
+      setSurface((current) => ({
+        ...current,
+        pattern,
+      }));
+      setSurfaceEditorOpen(false);
+    },
+    handleSurfaceClick: () => dispatch({ type: 'edit-surface' })
+  }), [dispatch, setSurface]);
 
-  const handleSurfaceChange = (newPattern: Pattern) => {
+  const handleSurfaceChange = useMemo(() => (newPattern: Pattern) => {
     setSurface((current) => ({
       ...current,
       pattern: newPattern,
-    })); 
-  }
+    }));
+  }, [setSurface]);
 
   const { movePatternDown, movePatternLeft, movePatternRight, movePatternUp} = useMemo(() => {
     const movePattern = (direction: 'up' | 'down' | 'left' | 'right') => {
@@ -1284,7 +1289,7 @@ export const Planner: React.FC<PlannerProps> = ({ width, height }) => {
                 onRight={movePatternRight}
                 onUp={movePatternUp}
                 disabled={surface.pattern.tiles.length === 0}
-                variant="wide"
+                variant="narrow"
                 className="md:flex hidden"
               />
             )}
@@ -1353,7 +1358,7 @@ export const Planner: React.FC<PlannerProps> = ({ width, height }) => {
               disabled={!editable} 
               pattern={surface.pattern}
               edit={state.mode === 'edit-surface'} 
-              onClick={() => dispatch({ type: "edit-surface" })} 
+              onClick={handleSurfaceClick} 
               onChange={handleSurfaceChange}
               />
           )}
@@ -1550,6 +1555,21 @@ export const Planner: React.FC<PlannerProps> = ({ width, height }) => {
           )}
         </Layer>
       </Stage>
+      
+      {/* Dimension Information Panel */}
+      <DimensionInfo
+        surfacePoints={defferdSurfacePoints}
+        selectedWall={state.mode === 'edit-wall' ? {
+          surfaceIndex: state.surfaceIndex,
+          wallIndex: state.wallIndex
+        } : undefined}
+        selectedCorner={state.mode === 'edit-corner' ? {
+          surfaceIndex: state.surfaceIndex,
+          wallIndex: state.wallIndex
+        } : undefined}
+        mode={state.mode}
+      />
+      
       {state.mode === 'edit-wall' && (
         <WallDimensionInput
           pointA={surface.points[state.surfaceIndex][state.wallIndex]}

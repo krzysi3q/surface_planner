@@ -1,6 +1,6 @@
 import Shape, { Point as ShapePoint } from '@doodle3d/clipper-js';
 
-import { Pattern, Point } from './types';
+import { Point } from './types';
 
 const pathPointToShapePoint = (point: Point): ShapePoint => ({
   X: point[0],

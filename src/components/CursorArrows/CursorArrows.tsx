@@ -11,7 +11,7 @@ export interface CursorArrowsProps {
   onLeft: () => void;
   onRight: () => void;
   disabled?: boolean;
-  variant?: 'wide' | 'default';
+  variant?: 'wide' | 'default' | 'narrow';
   className?: string;
 }
 
@@ -25,7 +25,7 @@ export const CursorArrowsComponent: React.FC<CursorArrowsProps> = ({
   className,
 }) => {
   return (
-    <div className={classMerge("flex flex-col items-center gap-2", className)}>
+    <div className={classMerge("flex flex-col items-center gap-2", variant === 'narrow' ? 'flex-row' : 'flex-col', className)}>
       <ArrowButton
         direction="up"
         onClick={onUp}

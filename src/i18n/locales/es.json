@@ -130,7 +130,11 @@
     "measurements": {
       "mm": "mm",
       "m": "m",
-      "deg": "°"
+      "deg": "°",
+      "surfaceArea": "Área de Superficie",
+      "perimeter": "Perímetro",
+      "selectedWall": "Pared Seleccionada",
+      "cornerAngle": "Ángulo de Esquina"
     },
     "notifications": {
       "saveSuccess": "Superficie guardada en el navegador",

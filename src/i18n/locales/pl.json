@@ -130,7 +130,11 @@
     "measurements": {
       "mm": "mm",
       "m": "m",
-      "deg": "°"
+      "deg": "°",
+      "surfaceArea": "Powierzchnia",
+      "perimeter": "Obwód",
+      "selectedWall": "Wybrana Ściana",
+      "cornerAngle": "Kąt Narożnika"
     },
     "notifications": {
       "saveSuccess": "Powierzchnia zapisana w przeglądarce",

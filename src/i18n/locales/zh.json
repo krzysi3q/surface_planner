@@ -130,7 +130,11 @@
     "measurements": {
       "mm": "毫米",
       "m": "米",
-      "deg": "°"
+      "deg": "°",
+      "surfaceArea": "表面积",
+      "perimeter": "周长",
+      "selectedWall": "选中的墙",
+      "cornerAngle": "角度"
     },
     "notifications": {
       "saveSuccess": "表面已保存到浏览器",
