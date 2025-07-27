@@ -400,7 +400,14 @@ type DrawPatternOptions = {
   backgroundColor?: string; // Optional background color
 }
 
-export const drawPattern = (pattern: Pattern, options: DrawPatternOptions = {}) => {
+type PatternData = {
+  width: number;
+  height: number;
+  gapColor: string;
+  tiles: { color: string; points: Point[] }[];
+}
+
+export const drawPattern = (pattern: PatternData, options: DrawPatternOptions = {}) => {
   const { alpha = 1, backgroundColor } = options;
   const canvas = document.createElement('canvas');
   const ctx = canvas.getContext('2d');

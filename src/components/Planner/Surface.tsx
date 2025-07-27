@@ -18,6 +18,7 @@ interface SurfaceProps {
 const patternCanvas = createPatternCanvas();
 
 export const Surface: React.FC<SurfaceProps> = ({ points, id, onClick, pattern, disabled, edit, onChange}) => {
+  const { width, height, gapColor, tiles } = pattern;
   const [background, setBackground] = React.useState<HTMLImageElement | undefined>(undefined);
   const lineRef = React.useRef<Konva.Line>(null);
 
@@ -30,8 +31,8 @@ export const Surface: React.FC<SurfaceProps> = ({ points, id, onClick, pattern, 
   }, [])
 
   useEffect(() => {
-    if (!pattern || pattern.tiles.length === 0) return;
-    const canvas = drawPattern(pattern)
+    if (tiles.length === 0) return;
+    const canvas = drawPattern({width, height, gapColor, tiles})
     canvas?.toBlob((blob) => {
       if (blob) {
         const url = URL.createObjectURL(blob);
@@ -42,7 +43,7 @@ export const Surface: React.FC<SurfaceProps> = ({ points, id, onClick, pattern, 
         image.src = url;
       }
     }, 'image/png', 10);
-  }, [pattern]);
+  }, [width, height, gapColor, tiles]);
 
 
 

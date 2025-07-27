@@ -958,6 +958,19 @@ export const Planner: React.FC<PlannerProps> = ({ width, height }) => {
               className={isTouchDevice ? "w-10 h-10" : ""}
             />
           } />
+        <Tooltip 
+          text={t('planner.ui.editPattern')}
+          position={"bottom"}
+          disabled={isTouchDevice}
+          component={ref => 
+            <ToolbarButton 
+              ref={ref} 
+              onClick={() => setSurfaceEditorOpen(true)} 
+              disabled={surface.points.length === 0}
+              icon={<PencilRuler />} 
+              className={isTouchDevice ? "w-10 h-10" : ""}
+            />
+          } />
         
         {/* Separator */}
         <div className={classMerge(
@@ -1098,11 +1111,11 @@ export const Planner: React.FC<PlannerProps> = ({ width, height }) => {
         <div className={classMerge(
             "absolute z-10 bg-gray-100 shadow-md p-1 rounded-lg",
               "left-16 top-2 flex flex-col space-y-1 w-12",
-              "md:left-2 md:w-32"
+              "md:left-1/2 md:top-16 md:-translate-x-1/2 md:flex-row md:w-auto md:gap-2"
           )}>
           <Tooltip 
             text={t('planner.ui.makeRightAngle')}
-            position={"right"}
+            position={isTouchDevice ? "right" : "bottom"}
             disabled={isTouchDevice}
             component={ref => 
               <ToolbarButton 
@@ -1116,7 +1129,7 @@ export const Planner: React.FC<PlannerProps> = ({ width, height }) => {
             } />
           <Tooltip 
             text={t('planner.ui.deleteCorner')}
-            position={"right"}
+            position={isTouchDevice ? "right" : "bottom"}
             disabled={isTouchDevice}
             component={ref => 
               <ToolbarButton 
@@ -1137,11 +1150,11 @@ export const Planner: React.FC<PlannerProps> = ({ width, height }) => {
         <div className={classMerge(
             "absolute z-10 bg-gray-100 shadow-md p-1 rounded-lg",
               "left-16 top-2 flex flex-col space-y-1 w-12",
-              "md:left-2 md:w-32"
+              "md:left-1/2 md:top-16 md:-translate-x-1/2 md:flex-row md:w-auto md:gap-2"
           )}>
           <Tooltip 
             text={t('planner.ui.deleteWall')}
-            position={"right"}
+            position={isTouchDevice ? "right" : "bottom"}
             disabled={isTouchDevice}
             component={ref => 
               <ToolbarButton 
@@ -1163,30 +1176,17 @@ export const Planner: React.FC<PlannerProps> = ({ width, height }) => {
           <div className={classMerge(
             "absolute z-10 bg-gray-100 shadow-md p-1 rounded-lg",
               "left-16 top-2 flex flex-col space-y-1 w-12",
-              "md:left-2 md:w-32"
+              "md:left-1/2 md:top-16 md:-translate-x-1/2 md:flex-row md:w-auto md:gap-2"
           )}>
-            <Tooltip 
-              text={t('planner.ui.editPattern')}
-              position={"right"}
-              disabled={isTouchDevice}
-              component={ref => 
-                <ToolbarButton 
-                  ref={ref} 
-                  wide={!isTouchDevice}
-                  onClick={() => setSurfaceEditorOpen(true)} 
-                  icon={<PencilRuler />}
-                  className="w-10 h-10 md:w-auto md:h-auto"
-                />
-              } />
             
-            {/* Desktop arrows - hidden on touch */}
-            {!isTouchDevice && (
+            {/* Desktop arrows - hidden on touch or when pattern editor is open */}
+            {!isTouchDevice && !surfaceEditorOpen && (
               <CursorArrows 
                 onDown={movePatternDown}
                 onLeft={movePatternLeft}
                 onRight={movePatternRight}
                 onUp={movePatternUp}
-                disabled={surface.pattern.tiles.length === 0 || surfaceEditorOpen}
+                disabled={surface.pattern.tiles.length === 0}
                 variant="wide"
                 className="md:flex hidden"
               />
@@ -1194,7 +1194,7 @@ export const Planner: React.FC<PlannerProps> = ({ width, height }) => {
             
             <Tooltip 
               text={t('planner.ui.deleteSurface')}
-              position={"right"}
+              position={isTouchDevice ? "right" : "bottom"}
               disabled={isTouchDevice}
               component={ref => 
                 <ToolbarButton 
@@ -1208,14 +1208,14 @@ export const Planner: React.FC<PlannerProps> = ({ width, height }) => {
               } />
           </div>
           
-          {/* Mobile arrows - shown on touch devices */}
-          {isTouchDevice && (
+          {/* Mobile arrows - shown on touch devices when pattern editor is closed */}
+          {isTouchDevice && !surfaceEditorOpen && (
             <CursorArrows 
               onDown={movePatternDown}
               onLeft={movePatternLeft}
               onRight={movePatternRight}
               onUp={movePatternUp}
-              disabled={surface.pattern.tiles.length === 0 || surfaceEditorOpen}
+              disabled={surface.pattern.tiles.length === 0}
               variant="wide"
               className="absolute z-10 bottom-4 right-4"
             />
