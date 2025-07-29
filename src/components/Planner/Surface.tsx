@@ -89,6 +89,8 @@ export const Surface: React.FC<SurfaceProps> = ({ points, id, onClick, pattern, 
     context.fillStrokeShape(shape);
   }, [points]);
 
+  console.log('Surface rendered', { x: pattern.x, y: pattern.y });
+
   return (
     <Group>
       <Shape

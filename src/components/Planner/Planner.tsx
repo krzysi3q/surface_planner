@@ -1,7 +1,7 @@
 import { Stage, Layer, Line } from "react-konva";
 import React, { useMemo, useRef } from "react";
 import type { Point, Pattern } from "./types";
-import { Download, Hand, PencilRuler, Redo, Save, SplinePointer, SquaresSubtract, SquaresUnite, Trash2, Undo, Upload, Waypoints, ZoomIn, ZoomOut } from 'lucide-react'
+import { Download, Hand, PencilRuler, Redo, Ruler, Save, SplinePointer, SquaresSubtract, SquaresUnite, Trash2, Undo, Upload, Waypoints, ZoomIn, ZoomOut } from 'lucide-react'
 import { RightAngle } from "@/components/Icons/RightAngle";
 import { v4 as uuid} from 'uuid'
 
@@ -29,6 +29,7 @@ import { CursorArrows } from "../CursorArrows";
 import { Tooltip } from "../Tooltip";
 import { TouchInstructions } from "../TouchInstructions";
 import { NotificationProvider, NotificationContainer, useNotification } from "../Notification";
+import { PatternDistance } from "./components/PatternDistance";
 
 type TemporarySurface = {
   state: "error" | "valid";
@@ -99,8 +100,8 @@ const useDragStage = (setSurface: ReturnType<typeof useHistoryState<{id: string,
       if (!pos) return;
       
       const scale = stage.scale()
-      const dx = (startPosRef.current.x - pos.x) / scale.x;
-      const dy = (startPosRef.current.y - pos.y) / scale.y;
+      const dx = Math.round((startPosRef.current.x - pos.x) / scale.x);
+      const dy = Math.round((startPosRef.current.y - pos.y) / scale.y);
 
       setSurface((current) => ({
         ...current,
@@ -230,6 +231,7 @@ export const Planner: React.FC<PlannerProps> = ({ width, height }) => {
   const defferdSurfacePoints = React.useDeferredValue(surface.points);
   const [ surfaceEditorOpen, setSurfaceEditorOpen ] = React.useState<boolean>(false);
   const [keepRightAngles, setKeepRightAngles] = React.useState<boolean>(true);
+  const [showPatternDistance, setShowPatternDistance] = React.useState<boolean>(true);
   const stageRef = React.useRef<Konva.Stage>(null);
   const { state, dispatch } = usePlannerReducer(surface.points);
   const { handleDragEnd: handleStageDragEnd, handleDragStart: handleStageDragStart} = useDragStage(setSurface, state.mode === 'preview');
@@ -1176,7 +1178,6 @@ export const Planner: React.FC<PlannerProps> = ({ width, height }) => {
       <div className={classMerge(
         "absolute z-10 bg-gray-100 shadow-md p-1 rounded-lg flex items-center justify-center",
         "top-2 right-2 flex-col", // mobile
-        "md:flex-row" // desktop
       )}>
         <Tooltip 
           text={t('planner.ui.zoomIn')}
@@ -1193,7 +1194,7 @@ export const Planner: React.FC<PlannerProps> = ({ width, height }) => {
         <ToolbarButton 
           onClick={() => setGlobalScale(100)} 
           label={`${globalScale.toFixed(0)}%`} 
-          className="w-8 h-10 text-xs md:text-sm md:w-14 md:h-9"
+          className="w-8 h-10 text-xs md:text-sm"
         />
         <Tooltip 
           text={t('planner.ui.zoomOut')}
@@ -1205,6 +1206,26 @@ export const Planner: React.FC<PlannerProps> = ({ width, height }) => {
               onClick={() => setGlobalScale(c => c > 0 ? Math.round((c - 10) * 10)/10 : 0)} 
               icon={<ZoomOut />} 
               className={"w-10 h-10 md:w-auto md:h-auto"}
+            />
+          } />
+
+        {/* Separator */}
+        <div className={classMerge(
+          "w-6 h-0 border-t border-solid border-t-black my-2", // mobile
+        )} />
+        <Tooltip 
+          text={showPatternDistance ? (t('planner.ui.hidePatternDistance') || 'Hide Pattern Distance') : (t('planner.ui.showPatternDistance') || 'Show Pattern Distance')}
+          position={"bottom"}
+          disabled={isTouchDevice}
+          component={ref => 
+            <ToolbarButton 
+              ref={ref} 
+              onClick={() => setShowPatternDistance(!showPatternDistance)} 
+              icon={<Ruler />} 
+              className={classMerge(
+                "w-10 h-10 md:w-auto md:h-auto",
+                showPatternDistance ? "bg-blue-200" : ""
+              )}
             />
           } />
       </div>
@@ -1414,11 +1435,13 @@ export const Planner: React.FC<PlannerProps> = ({ width, height }) => {
                       {isNonRightAngle && (
                         <AngleMarker x={pt[0]} y={pt[1]} angle={sweepAngleDeg} rotation={rotationStartDeg} />
                       )}
-                      {/* <PatternDistance 
-                        pointA={pt} 
-                        pointB={nxt} 
-                        pattern={surface.pattern}
-                      /> */}
+                      {showPatternDistance && (
+                        <PatternDistance 
+                          pointA={pt} 
+                          pointB={nxt} 
+                          pattern={surface.pattern}
+                        />
+                      )}
                     </React.Fragment>
                   );
                 })}

@@ -138,7 +138,9 @@
       "deleteSurface": "Eliminar superficie",
       "editPattern": "Editar patrón",
       "editWallLength": "Editar longitud de pared",
-      "keepRightAngles": "Mantener ángulos rectos"
+      "keepRightAngles": "Mantener ángulos rectos",
+      "showPatternDistance": "Mostrar Distancia del Patrón",
+      "hidePatternDistance": "Ocultar Distancia del Patrón"
     },
     "measurements": {
       "mm": "mm",

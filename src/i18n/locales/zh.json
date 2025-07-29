@@ -138,7 +138,9 @@
       "deleteSurface": "删除表面",
       "editPattern": "编辑图案",
       "editWallLength": "编辑墙面长度",
-      "keepRightAngles": "保持直角"
+      "keepRightAngles": "保持直角",
+      "showPatternDistance": "显示图案距离",
+      "hidePatternDistance": "隐藏图案距离"
     },
     "measurements": {
       "mm": "毫米",

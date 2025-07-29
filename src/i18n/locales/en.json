@@ -138,7 +138,9 @@
       "deleteSurface": "Delete surface",
       "editPattern": "Edit pattern",
       "editWallLength": "Edit wall length",
-      "keepRightAngles": "Keep right angles"
+      "keepRightAngles": "Keep right angles",
+      "showPatternDistance": "Show Pattern Distance",
+      "hidePatternDistance": "Hide Pattern Distance"
     },
     "measurements": {
       "mm": "mm",

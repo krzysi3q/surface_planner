@@ -70,25 +70,30 @@ const calculateDistance = (
 };
 
 const calculatePosition = (
-  midPoint: Point,
   value: number,
   orientation: Orientation,
   lineIndex: number,
   lineGap: number,
-  offset: number
+  offset: number,
+  pointA: Point,
+  pointB: Point
 ): [Point, Point] => {
-  const baseX = midPoint[0] + lineIndex * lineGap - offset;
-  const baseY = midPoint[1] + lineIndex * lineGap - offset;
+  // Calculate position at 1/3 of wall length
+  const oneThirdX = pointA[0] + (pointB[0] - pointA[0]) / 3;
+  const oneThirdY = pointA[1] + (pointB[1] - pointA[1]) / 3;
+  
+  const baseX = oneThirdX + lineIndex * lineGap - offset;
+  const baseY = oneThirdY + lineIndex * lineGap - offset;
   
   switch (orientation) {
     case 'top':
-      return [[baseX, midPoint[1]], [baseX, midPoint[1] + value]];
+      return [[baseX, oneThirdY], [baseX, oneThirdY + value]];
     case 'bottom':
-      return [[baseX, midPoint[1]], [baseX, midPoint[1] - value]];
+      return [[baseX, oneThirdY], [baseX, oneThirdY - value]];
     case 'left':
-      return [[midPoint[0], baseY], [midPoint[0] + value, baseY]];
+      return [[oneThirdX, baseY], [oneThirdX + value, baseY]];
     case 'right':
-      return [[midPoint[0], baseY], [midPoint[0] - value, baseY]];
+      return [[oneThirdX, baseY], [oneThirdX - value, baseY]];
   }
 };
 
@@ -174,12 +179,26 @@ export const PatternDistance: React.FC<PatternDistanceProps> = ({ pointA, pointB
         if (tileOrientation !== oppositeOrientation) continue;
 
         const value = calculateDistance(midPoint, pattern, point, lineOrientation, width, height);
+
+        if (value <= 0) continue;
+        
+        // Calculate tile dimensions
+        const tileXCoords = tile.points.map(p => p[0] * pattern.scale);
+        const tileYCoords = tile.points.map(p => p[1] * pattern.scale);
+        
+        // Don't show distance if tile is fully visible
+        const isFullyVisible = (lineOrientation === 'top' || lineOrientation === 'bottom') 
+          ? value >  Math.max(...tileYCoords) - Math.min(...tileYCoords) 
+          : value >  Math.max(...tileXCoords) - Math.min(...tileXCoords);
+        
+        if (isFullyVisible) continue;
+        
         const key = `${value}-${lineOrientation}`;
         
         if (seenValues.has(key)) continue;
         seenValues.add(key);
 
-        const position = calculatePosition(midPoint, value, lineOrientation, i, lineGap, offset);
+        const position = calculatePosition(value, lineOrientation, i, lineGap, offset, pointA, pointB);
         distances.push({ position, value, orientation: lineOrientation });
       }
     }

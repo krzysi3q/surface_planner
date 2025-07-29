@@ -138,7 +138,9 @@
       "deleteSurface": "Usuń powierzchnię",
       "editPattern": "Edytuj wzór",
       "editWallLength": "Edytuj długość ściany",
-      "keepRightAngles": "Zachowaj kąty proste"
+      "keepRightAngles": "Zachowaj kąty proste",
+      "showPatternDistance": "Pokaż Odległość Wzoru",
+      "hidePatternDistance": "Ukryj Odległość Wzoru"
     },
     "measurements": {
       "mm": "mm",
