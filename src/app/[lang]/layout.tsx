@@ -1,17 +1,5 @@
 import type { Metadata, Viewport } from "next";
-import { Geist, Geist_Mono } from "next/font/google";
-import "../globals.css";
 import { I18nProvider } from '@/components/I18nProvider';
-
-const geistSans = Geist({
-  variable: "--font-geist-sans",
-  subsets: ["latin"],
-});
-
-const geistMono = Geist_Mono({
-  variable: "--font-geist-mono",
-  subsets: ["latin"],
-});
 
 type Props = {
   params: Promise<{ lang: string }>;
@@ -22,12 +10,16 @@ export async function generateMetadata({ params }: { params: Promise<{ lang: str
   const { lang } = await params;
   const titles = {
     en: "HandyLay - Surface Planner",
-    pl: "HandyLay - Planowanie Powierzchni"
+    pl: "HandyLay - Planowanie Powierzchni",
+    es: "HandyLay - Planificador de Superficies",
+    zh: "HandyLay - 表面规划师"
   };
   
   const descriptions = {
     en: "Create and design your perfect apartment floor or wall with interactive walls and tile layouts.",
-    pl: "Twórz i projektuj idealną podłogę lub ścianę swojego mieszkania z interaktywnymi ścianami i układami płytek."
+    pl: "Twórz i projektuj idealną podłogę lub ścianę swojego mieszkania z interaktywnymi ścianami i układami płytek.",
+    es: "Crea y diseña el suelo o pared perfecta de tu apartamento con paredes interactivas y diseños de azulejos.",
+    zh: "为您的公寓地板或墙面创造和设计完美的布局，配备交互式墙面和瓷砖布局。"
   };
 
   return {
@@ -36,7 +28,7 @@ export async function generateMetadata({ params }: { params: Promise<{ lang: str
     applicationName: "HandyLay",
     other: {
       "apple-mobile-web-app-title": "HandyLay",
-      "apple-mobile-web-app-capable": "yes",
+      "mobile-web-app-capable": "yes",
       "apple-mobile-web-app-status-bar-style": "default",
     }
   };
@@ -53,21 +45,12 @@ export const viewport: Viewport = {
 export default async function LocaleLayout({ children, params }: Props) {
   const { lang } = await params;
   return (
-    <html lang={lang}>
-      <head>
-        {/* Cloudflare Web Analytics */}
-        <script defer src='https://static.cloudflareinsights.com/beacon.min.js' data-cf-beacon='{"token": "ccf773cb97ec4c48a9729b3105430263"}'></script>
-        {/* End Cloudflare Web Analytics */}
-      </head>
-      <body className={`${geistSans.variable} ${geistMono.variable} antialiased`}>
-        <I18nProvider initialLanguage={lang}>
-          {children}
-        </I18nProvider>
-      </body>
-    </html>
+    <I18nProvider initialLanguage={lang}>
+      {children}
+    </I18nProvider>
   );
 }
 
 export async function generateStaticParams() {
-  return [{ lang: 'en' }, { lang: 'pl' }];
+  return [{ lang: 'en' }, { lang: 'pl' }, { lang: 'es' }, { lang: 'zh' }];
 }

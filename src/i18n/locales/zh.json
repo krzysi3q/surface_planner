@@ -10,10 +10,23 @@
       "description": "为您的墙面和地板规划完美的瓷砖布局！避免边缘出现小块，最大限度减少切割 - 让您的DIY项目看起来专业并为您节省金钱。",
       "cta": "立即开始规划",
       "learnMore": "了解更多",
-      "scrollToFeatures": "滚动到功能部分"
+      "scrollToFeatures": "滚动到功能部分",
+      "scroll": "向下滚动"
     },
     "features": {
       "title": "为什么选择 Handy Lay？",
+      "interactive": {
+        "title": "互动设计",
+        "description": "使用直观的工具绘制您的墙面和表面。在设计空间时查看实时更新。"
+      },
+      "textures": {
+        "title": "丰富的纹理库",
+        "description": "从数十种逼真纹理中选择，包括木材、石材、陶瓷和织物图案。"
+      },
+      "fast": {
+        "title": "闪电般快速",
+        "description": "即时计算和实时预览使规划快速高效。"
+      },
       "smartLayout": {
         "title": "智能布局",
         "description": "自动获得最佳瓷砖排列 - 不再需要猜测！我们的工具计算出完美的布局，以最大限度减少浪费并最大化美观。"

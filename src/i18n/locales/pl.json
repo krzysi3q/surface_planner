@@ -10,10 +10,23 @@
       "description": "Zaplanuj idealny układ płytek dla twoich ścian i podłóg! Unikaj małych kawałków na krawędziach i minimalizuj cięcia - sprawiając, że twój projekt DIY będzie wyglądał profesjonalnie i oszczędzisz pieniądze.",
       "cta": "Rozpocznij Planowanie",
       "learnMore": "Dowiedz się więcej",
-      "scrollToFeatures": "Przewiń do sekcji funkcji"
+      "scrollToFeatures": "Przewiń do sekcji funkcji",
+      "scroll": "Przewiń w dół"
     },
     "features": {
       "title": "Dlaczego wybrać Handy Lay?",
+      "interactive": {
+        "title": "Interaktywny Design",
+        "description": "Rysuj ściany i powierzchnie za pomocą intuicyjnych narzędzi. Widzisz aktualizacje w czasie rzeczywistym podczas projektowania przestrzeni."
+      },
+      "textures": {
+        "title": "Bogata Biblioteka Tekstur",
+        "description": "Wybierz spośród dziesiątek realistycznych tekstur, w tym drewna, kamienia, ceramiki i wzorów tkanin."
+      },
+      "fast": {
+        "title": "Błyskawicznie Szybki",
+        "description": "Natychmiastowe obliczenia i podgląd w czasie rzeczywistym sprawiają, że planowanie jest szybkie i efektywne."
+      },
       "smartLayout": {
         "title": "Inteligentny Układ",
         "description": "Uzyskaj najlepsze ułożenie płytek automatycznie - koniec z zgadywaniem! Nasze narzędzie ustala idealny układ, aby zminimalizować marnotrawstwo i zmaksymalizować piękno."

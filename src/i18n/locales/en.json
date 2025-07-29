@@ -10,10 +10,23 @@
       "description": "Plan the perfect tile layout for your walls and floors! Avoid tiny pieces at edges and minimize cuts - making your DIY project look professional and save you money.",
       "cta": "Start Planning Now",
       "learnMore": "Learn more",
-      "scrollToFeatures": "Scroll to features section"
+      "scrollToFeatures": "Scroll to features section",
+      "scroll": "Scroll Down"
     },
     "features": {
       "title": "Why Choose Handy Lay?",
+      "interactive": {
+        "title": "Interactive Design",
+        "description": "Draw your walls and surfaces with intuitive tools. See real-time updates as you design your space."
+      },
+      "textures": {
+        "title": "Rich Texture Library",
+        "description": "Choose from dozens of realistic textures including wood, stone, ceramic, and fabric patterns."
+      },
+      "fast": {
+        "title": "Lightning Fast",
+        "description": "Instant calculations and real-time preview make planning quick and efficient."
+      },
       "smartLayout": {
         "title": "Smart Layout",
         "description": "Get the best tile arrangement automatically - no more guessing! Our tool figures out the perfect layout to minimize waste and maximize beauty."

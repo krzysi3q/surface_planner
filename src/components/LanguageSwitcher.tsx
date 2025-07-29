@@ -24,8 +24,13 @@ export const LanguageSwitcher: React.FC = () => {
       segments[0] = newLanguage;
       newPath = '/' + segments.join('/');
     } else {
-      // Prepend new language to current path
-      newPath = `/${newLanguage}${pathname}`;
+      // We're on root level, redirect to language-specific URL
+      if (pathname === '/') {
+        newPath = `/${newLanguage}`;
+      } else {
+        // Prepend new language to current path
+        newPath = `/${newLanguage}${pathname}`;
+      }
     }
     
     // Update i18n language
@@ -41,7 +46,7 @@ export const LanguageSwitcher: React.FC = () => {
     const currentLang = segments[0];
     const isCurrentLangInPath = ['en', 'pl', 'es', 'zh'].includes(currentLang);
     
-    const langPath = isCurrentLangInPath ? `/${currentLang}/language` : `/en/language`;
+    const langPath = isCurrentLangInPath ? `/${currentLang}/language` : `/${i18n.language}/language`;
     router.push(langPath);
   };
 

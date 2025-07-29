@@ -6,22 +6,22 @@ const defaultLocale = 'en';
 export function middleware(request: NextRequest) {
   const pathname = request.nextUrl.pathname;
   
+  // Allow root path to be served without redirect for SEO
+  if (pathname === '/') {
+    return NextResponse.next();
+  }
+  
   // Check if there is any supported locale in the pathname
   const pathnameIsMissingLocale = locales.every(
     (locale) => !pathname.startsWith(`/${locale}/`) && pathname !== `/${locale}`
   );
 
-  // Redirect if there is no locale
+  // Redirect if there is no locale for non-root paths
   if (pathnameIsMissingLocale) {
     // Get locale from Accept-Language header or use default
     const locale = getLocaleFromHeaders(request) || defaultLocale;
     
-    // Special case for root path
-    if (pathname === '/') {
-      return NextResponse.redirect(new URL(`/${locale}`, request.url));
-    }
-    
-    // For other paths, prepend the locale
+    // For non-root paths, prepend the locale
     return NextResponse.redirect(new URL(`/${locale}${pathname}`, request.url));
   }
 }

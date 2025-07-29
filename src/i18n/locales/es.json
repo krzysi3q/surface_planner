@@ -10,10 +10,23 @@
       "description": "¡Planifica el diseño de azulejos perfecto para tus paredes y suelos! Evita piezas pequeñas en los bordes y minimiza los cortes - haciendo que tu proyecto DIY se vea profesional y te ahorre dinero.",
       "cta": "Comenzar a Planificar Ahora",
       "learnMore": "Más información",
-      "scrollToFeatures": "Desplazarse a la sección de características"
+      "scrollToFeatures": "Desplazarse a la sección de características",
+      "scroll": "Desplazar Hacia Abajo"
     },
     "features": {
       "title": "¿Por qué elegir Handy Lay?",
+      "interactive": {
+        "title": "Diseño Interactivo",
+        "description": "Dibuja tus paredes y superficies con herramientas intuitivas. Ve actualizaciones en tiempo real mientras diseñas tu espacio."
+      },
+      "textures": {
+        "title": "Rica Biblioteca de Texturas",
+        "description": "Elige entre docenas de texturas realistas incluyendo madera, piedra, cerámica y patrones de tela."
+      },
+      "fast": {
+        "title": "Rápido como el Rayo",
+        "description": "Cálculos instantáneos y vista previa en tiempo real hacen que la planificación sea rápida y eficiente."
+      },
       "smartLayout": {
         "title": "Diseño Inteligente",
         "description": "Obtén la mejor disposición de azulejos automáticamente - ¡no más adivinanzas! Nuestra herramienta calcula el diseño perfecto para minimizar el desperdicio y maximizar la belleza."

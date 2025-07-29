@@ -14,7 +14,7 @@ export const I18nProvider: React.FC<I18nProviderProps> = ({ children, initialLan
   const [isInitialized, setIsInitialized] = useState(false);
 
   useEffect(() => {
-    // Set initial language from URL if provided
+    // Set initial language from URL if provided, otherwise use browser detection
     if (initialLanguage) {
       setLanguageFromUrl(initialLanguage);
     }
