@@ -11,6 +11,11 @@ export function middleware(request: NextRequest) {
     return NextResponse.next();
   }
   
+  // Handle sitemap.xml and robots.txt
+  if (pathname === '/sitemap.xml' || pathname === '/robots.txt') {
+    return NextResponse.next();
+  }
+  
   // Check if there is any supported locale in the pathname
   const pathnameIsMissingLocale = locales.every(
     (locale) => !pathname.startsWith(`/${locale}/`) && pathname !== `/${locale}`
@@ -21,8 +26,8 @@ export function middleware(request: NextRequest) {
     // Get locale from Accept-Language header or use default
     const locale = getLocaleFromHeaders(request) || defaultLocale;
     
-    // For non-root paths, prepend the locale
-    return NextResponse.redirect(new URL(`/${locale}${pathname}`, request.url));
+    // For non-root paths, prepend the locale with 301 redirect for SEO
+    return NextResponse.redirect(new URL(`/${locale}${pathname}`, request.url), 301);
   }
 }
 

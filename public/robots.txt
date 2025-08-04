@@ -1,0 +1,16 @@
+User-agent: *
+Allow: /
+
+# Sitemaps
+Sitemap: https://handylay.com/sitemap.xml
+
+# Block crawling of API routes and internal paths
+Disallow: /api/
+Disallow: /_next/
+Disallow: /admin/
+
+# Allow all language variants
+Allow: /en/
+Allow: /pl/
+Allow: /es/
+Allow: /zh/
