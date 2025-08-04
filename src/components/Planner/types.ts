@@ -35,4 +35,6 @@ export interface Pattern {
   tilesGap: number
   scale: number
   gapColor: string
+  rawImageWidth?: number
+  rawImageHeight?: number
 }

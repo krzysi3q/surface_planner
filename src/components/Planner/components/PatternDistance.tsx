@@ -40,32 +40,52 @@ const calculateDistance = (
   midPoint: Point,
   pattern: Pattern,
   point: Point,
-  orientation: Orientation,
-  patternWidth: number,
-  patternHeight: number
+  orientation: Orientation
 ): number => {
+  // Quantize scale so tile cell size becomes integer pixels to match rasterized pattern repetition.
+  const s = pattern.scale;
+  const imgW = (pattern.rawImageWidth ?? pattern.width);
+  const imgH = (pattern.rawImageHeight ?? pattern.height);
+  const cellW = imgW * s;
+  const cellH = imgH * s;
+  // Edge-based replication approach avoids cumulative drift from repeated modulo on large offsets / fractional cells
+  const midX = midPoint[0];
+  const midY = midPoint[1];
+
   if (orientation === 'top' || orientation === 'bottom') {
-    const relativeY = (midPoint[1] - pattern.y) % patternHeight;
-    const normalizedY = relativeY < 0 ? relativeY + patternHeight : relativeY;
-    const tileY = orientation === 'top' 
-      ? Math.min(point[1] * pattern.scale, patternHeight)
-      : Math.max(point[1] * pattern.scale, 0);
-    
-    const distance = Math.abs(normalizedY - tileY);
-    return normalizedY > tileY && orientation === 'top' || normalizedY < tileY && orientation === 'bottom'
-      ? patternHeight - distance 
-      : distance;
+    const edgeLocalY = point[1]; // unscaled
+    const baseEdgeY = pattern.y + edgeLocalY * s; // world coordinate of one instance edge
+    if (cellH === 0) return 0;
+    if (orientation === 'top') { // distance in +y direction
+      const k = Math.ceil((midY - baseEdgeY) / cellH);
+      const worldEdge = baseEdgeY + k * cellH;
+      let dist = worldEdge - midY;
+      if (dist < 0) dist += cellH; // safety against FP
+      return dist;
+    } else { // bottom: distance in -y direction
+      const k = Math.floor((midY - baseEdgeY) / cellH);
+      const worldEdge = baseEdgeY + k * cellH;
+      let dist = midY - worldEdge;
+      if (dist < 0) dist += cellH;
+      return dist;
+    }
   } else {
-    const relativeX = (midPoint[0] - pattern.x) % patternWidth;
-    const normalizedX = relativeX < 0 ? relativeX + patternWidth : relativeX;
-    const tileX = orientation === 'left'
-      ? Math.min(point[0] * pattern.scale, patternWidth)
-      : Math.max(point[0] * pattern.scale, 0);
-    
-    const distance = Math.abs(normalizedX - tileX);
-    return normalizedX > tileX && orientation === 'left' || normalizedX < tileX && orientation === 'right'
-      ? patternWidth - distance 
-      : distance;
+    const edgeLocalX = point[0];
+    const baseEdgeX = pattern.x + edgeLocalX * s;
+    if (cellW === 0) return 0;
+    if (orientation === 'left') { // distance in +x
+      const k = Math.ceil((midX - baseEdgeX) / cellW);
+      const worldEdge = baseEdgeX + k * cellW;
+      let dist = worldEdge - midX;
+      if (dist < 0) dist += cellW;
+      return dist;
+    } else { // right: distance in -x
+      const k = Math.floor((midX - baseEdgeX) / cellW);
+      const worldEdge = baseEdgeX + k * cellW;
+      let dist = midX - worldEdge;
+      if (dist < 0) dist += cellW;
+      return dist;
+    }
   }
 };
 
@@ -160,10 +180,10 @@ export const PatternDistance: React.FC<PatternDistanceProps> = ({ pointA, pointB
 
     const oppositeOrientation = ORIENTATION_MAP[lineOrientation];
     const numTiles = pattern.tiles.length;
-    const lineGap = 5;
+    const lineGap = 6;
     const offset = Math.floor(numTiles / 2) * lineGap;
-    const height = pattern.height * pattern.scale;
-    const width = pattern.width * pattern.scale;
+  // Cell size in screen space (may be fractional). width/height already define the base pattern image size.
+  // No padding adjustments: distances measured relative to raw pattern origin used for fillPatternX/Y
 
     const distances: UniqueDistance[] = [];
     const seenValues = new Set<string>();
@@ -178,20 +198,9 @@ export const PatternDistance: React.FC<PatternDistanceProps> = ({ pointA, pointB
         
         if (tileOrientation !== oppositeOrientation) continue;
 
-        const value = calculateDistance(midPoint, pattern, point, lineOrientation, width, height);
+        const value = Math.round(calculateDistance(midPoint, pattern, point, lineOrientation));
 
         if (value <= 0) continue;
-        
-        // Calculate tile dimensions
-        const tileXCoords = tile.points.map(p => p[0] * pattern.scale);
-        const tileYCoords = tile.points.map(p => p[1] * pattern.scale);
-        
-        // Don't show distance if tile is fully visible
-        const isFullyVisible = (lineOrientation === 'top' || lineOrientation === 'bottom') 
-          ? value >  Math.max(...tileYCoords) - Math.min(...tileYCoords) 
-          : value >  Math.max(...tileXCoords) - Math.min(...tileXCoords);
-        
-        if (isFullyVisible) continue;
         
         const key = `${value}-${lineOrientation}`;
         
@@ -212,6 +221,12 @@ export const PatternDistance: React.FC<PatternDistanceProps> = ({ pointA, pointB
     <Group>
       {uniqueDistances.map(({ position, value, orientation }, index) => {
         const text = `${(value * 10).toFixed(0)} mm`;
+        const tick = 5; // half length of perpendicular ticks
+        const [p0, p1] = position;
+        const vertical = p0[0] === p1[0];
+        const tickLines: number[][] = vertical
+          ? [[p1[0] - tick, p1[1], p1[0] + tick, p1[1]]] // horizontal tick at other end
+          : [[p1[0], p1[1] - tick, p1[0], p1[1] + tick]]; // vertical tick at other end
         return (
           <Group key={index}>
             <Line
@@ -219,6 +234,9 @@ export const PatternDistance: React.FC<PatternDistanceProps> = ({ pointA, pointB
               stroke="red"
               strokeWidth={1}
             />
+            {tickLines.map((pts, i) => (
+              <Line key={i} points={pts} stroke="red" strokeWidth={1} />
+            ))}
             <TextComponent 
               position={position} 
               text={text} 

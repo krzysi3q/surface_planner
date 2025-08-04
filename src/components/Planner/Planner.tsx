@@ -137,8 +137,8 @@ const getDefaultSurface = (width: number, height: number) => {
       gapColor: '#333333',
       height: tileSize * 2,
       width: tileSize * 2,
-      x: centerX,
-      y: centerY,
+      x: 10,
+      y: 10,
       tiles: [
         {
           id: uuid(),
@@ -206,7 +206,7 @@ const getDefaultSurface = (width: number, height: number) => {
         }
       ],
       tilesGap: 2,
-      scale: 0.4
+      scale: 0.2
     };
     
     return {
@@ -231,7 +231,7 @@ export const Planner: React.FC<PlannerProps> = ({ width, height }) => {
   const defferdSurfacePoints = React.useDeferredValue(surface.points);
   const [ surfaceEditorOpen, setSurfaceEditorOpen ] = React.useState<boolean>(false);
   const [keepRightAngles, setKeepRightAngles] = React.useState<boolean>(true);
-  const [showPatternDistance, setShowPatternDistance] = React.useState<boolean>(true);
+  const [showPatternDistance, setShowPatternDistance] = React.useState<boolean>(false);
   const stageRef = React.useRef<Konva.Stage>(null);
   const { state, dispatch } = usePlannerReducer(surface.points);
   const { handleDragEnd: handleStageDragEnd, handleDragStart: handleStageDragStart} = useDragStage(setSurface, state.mode === 'preview');
@@ -806,35 +806,24 @@ export const Planner: React.FC<PlannerProps> = ({ width, height }) => {
   const { movePatternDown, movePatternLeft, movePatternRight, movePatternUp} = useMemo(() => {
     const movePattern = (direction: 'up' | 'down' | 'left' | 'right') => {
       setSurface((current) => {
-        const newPattern = { ...current.pattern };
-        const moveAmount = 1; // pixels to move
+        const moveAmount = 1;
+        let { x, y } = current.pattern;
         switch (direction) {
-          case 'up':
-            newPattern.y -= moveAmount;
-            break;
-          case 'down':
-            newPattern.y += moveAmount;
-            break;
-          case 'left':
-            newPattern.x -= moveAmount;
-            break;
-          case 'right':
-            newPattern.x += moveAmount;
-            break;
+          case 'up': y -= moveAmount; break;
+          case 'down': y += moveAmount; break;
+          case 'left': x -= moveAmount; break;
+          case 'right': x += moveAmount; break;
         }
-        return {
-          ...current,
-          pattern: newPattern,
-        };
+        return { ...current, pattern: { ...current.pattern, x, y } };
       });
-    }
+    };
     return {
       movePatternUp: () => movePattern('up'),
       movePatternDown: () => movePattern('down'),
       movePatternLeft: () => movePattern('left'),
       movePatternRight: () => movePattern('right'),
-    }
-  }, [setSurface])
+    };
+  }, [setSurface]);
 
   const handleWallDimensionChange = (surfaceIndex: number, wallIndex: number, newLength: number) => {
     setSurface((current) => {

@@ -18,7 +18,7 @@ interface SurfaceProps {
 const patternCanvas = createPatternCanvas();
 
 export const Surface: React.FC<SurfaceProps> = ({ points, id, onClick, pattern, disabled, edit, onChange}) => {
-  const { width, height, gapColor, tiles } = pattern;
+  const { width, height, gapColor, tiles, scale } = pattern;
   const [background, setBackground] = React.useState<HTMLImageElement | undefined>(undefined);
   const lineRef = React.useRef<Konva.Line>(null);
 
@@ -32,18 +32,25 @@ export const Surface: React.FC<SurfaceProps> = ({ points, id, onClick, pattern, 
 
   useEffect(() => {
     if (tiles.length === 0) return;
-    const canvas = drawPattern({width, height, gapColor, tiles})
+    const canvas = drawPattern({ width, height, gapColor, tiles });
     canvas?.toBlob((blob) => {
-      if (blob) {
-        const url = URL.createObjectURL(blob);
-        const image = new Image();
-        image.onload = () => {
-          setBackground(image);
+      if (!blob) return;
+      const url = URL.createObjectURL(blob);
+      const image = new Image();
+      image.onload = () => {
+        setBackground(image);
+        if (pattern.rawImageWidth !== image.width || pattern.rawImageHeight !== image.height) {
+          onChange?.({
+            ...pattern,
+            rawImageWidth: image.width,
+            rawImageHeight: image.height,
+          });
         }
-        image.src = url;
-      }
+      };
+      image.src = url;
     }, 'image/png', 10);
-  }, [width, height, gapColor, tiles]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [width, height, gapColor, tiles, onChange]);
 
 
 
@@ -69,7 +76,6 @@ export const Surface: React.FC<SurfaceProps> = ({ points, id, onClick, pattern, 
     },
   }), [disabled, edit, onClick]);
 
-  const scale = (pattern?.scale || 1);
 
   const startPos = React.useRef<{ mouse: {x: number, y: number}, pattern: {x: number, y: number}} | null>(null)
   
@@ -88,8 +94,7 @@ export const Surface: React.FC<SurfaceProps> = ({ points, id, onClick, pattern, 
     });
     context.fillStrokeShape(shape);
   }, [points]);
-
-  console.log('Surface rendered', { x: pattern.x, y: pattern.y });
+  // debug removed to prevent excessive logging
 
   return (
     <Group>
@@ -112,8 +117,9 @@ export const Surface: React.FC<SurfaceProps> = ({ points, id, onClick, pattern, 
         fillPatternRepeat="repeat"
         fillPatternScaleX={scale}
         fillPatternScaleY={scale}
-        fillPatternX={pattern?.x || 0}
-        fillPatternY={pattern?.y || 0}
+        
+  fillPatternX={pattern?.x || 0}
+  fillPatternY={pattern?.y || 0}
         stroke="black"
         strokeWidth={1}
         shadowColor="black"
@@ -173,7 +179,6 @@ export const Surface: React.FC<SurfaceProps> = ({ points, id, onClick, pattern, 
               y: newY,
             });
           }
-          
         }}
       />
     </Group>

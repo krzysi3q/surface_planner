@@ -65,7 +65,7 @@ export const PatternEditor: React.FC<PatternEditorProps> = ({className, value, o
     x: 0,
     y: 0,
     tilesGap: 0,
-    scale: 0.004,
+    scale: 0.2,
     gapColor: "#000000"
   });
 
