@@ -26,11 +26,6 @@ export const subtractSurfaces = (pointsA: Point[][], pointsB: Point[][]): Point[
   return subtractedShape.paths.map(p => p.map(shapePointToPathPoint));
 }
 
-export const pointInSurface = (point: Point, surface: Point[][]): boolean => {
-  const shape = pathPointsToShape(surface);
-  return shape.pointInShape(pathPointToShapePoint(point));
-} 
-
 export const getSurfaceArea = (surface: Point[][]): number => {
   // if (surface.length < 3) return 0; // Not a valid polygon
   const shape = pathPointsToShape(surface);
@@ -66,12 +61,6 @@ export const doSurfacesIntersect = (surfaceA: Point[][], surfaceB: Point[][]): b
   return intersection.paths.length > 0 && intersection.totalArea() > Number.EPSILON;
   
 }
-
-export const pointInPath = (point: Point, path: Point[][]): boolean => {
-  const shape = pathPointsToShape(path);
-  return shape.pointInPath(0, pathPointToShapePoint(point));
-};
-
 
 export const doLinesIntersect = (a1: Point, a2: Point, b1: Point, b2: Point): boolean => {
   const orientation = (p: Point, q: Point, r: Point): number => {
@@ -227,13 +216,6 @@ export const loadFromLocalStorage = (key: string) => {
     return undefined;
   }
 }
-export const removeFromLocalStorage = (key: string) => {
-  try {
-    localStorage.removeItem(key);
-  } catch (error) {
-    console.error("Error removing from localStorage", error);
-  }
-}
 
 export const getBoundingBox = (points: Point[]): { x: number, y: number, width: number, height: number} => {
   const xs = points.map(point => point[0]);
@@ -387,8 +369,6 @@ export const rotateShape = (points: Point[], angle: number, center: Point): Poin
   });
 }
 
-export const moveToTopLeft = (points: Point[]): Point[] => moveTo(points, 0, 0);
-
 export const moveTo = (points: Point[], x: number, y: number): Point[] => {
   const minX = Math.min(...points.map(point => point[0]));
   const minY = Math.min(...points.map(point => point[1]));
@@ -437,47 +417,6 @@ export const drawPattern = (pattern: PatternData, options: DrawPatternOptions = 
 
 /**
  * Checks if two surfaces are completely separate (optimized check)
- * Returns true if surfaces definitely don't intersect, false if they might intersect
- */
-export const areSurfacesDisjoint = (surfaceA: Point[][], surfaceB: Point[][]): boolean => {
-  // Fast bounding box check
-  const boxA = getBoundingBox(surfaceA[0]);
-  const boxB = getBoundingBox(surfaceB[0]);
-  
-  // If bounding boxes don't overlap, surfaces are definitely disjoint
-  return (boxA.x + boxA.width < boxB.x || 
-          boxB.x + boxB.width < boxA.x || 
-          boxA.y + boxA.height < boxB.y || 
-          boxB.y + boxB.height < boxA.y);
-};
-
-/**
- * Calculates the intersection area between two surfaces
- * Returns 0 if surfaces don't intersect
- */
-export const getSurfaceIntersectionArea = (surfaceA: Point[][], surfaceB: Point[][]): number => {
-  // Quick disjoint check
-  if (areSurfacesDisjoint(surfaceA, surfaceB)) {
-    return 0;
-  }
-  
-  // If surfaces have less than 3 points, they're not valid polygons
-  if (surfaceA.length < 3 || surfaceB.length < 3) {
-    return 0;
-  }
-  
-  try {
-    const shapeA = pathPointsToShape(surfaceA);
-    const shapeB = pathPointsToShape(surfaceB);
-    
-    const intersection = shapeA.intersect(shapeB);
-    return intersection.totalArea();
-  } catch (error) {
-    console.warn('Clipper-js intersection area calculation failed:', error);
-    return 0;
-  }
-};
-
 /**
  * Calculates the distance between two points
  */
