@@ -1,6 +1,6 @@
 import type { Metadata, Viewport } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
-import { headers } from "next/headers";
+import { getLanguageFromHeaders } from '@/lib/language';
 import "./globals.css";
 
 const geistSans = Geist({
@@ -13,32 +13,7 @@ const geistMono = Geist_Mono({
   subsets: ["latin"],
 });
 
-async function getLanguageFromHeaders(): Promise<string> {
-  const headersList = await headers();
-  const acceptLanguage = headersList.get('accept-language');
-  
-  if (!acceptLanguage) return 'en';
-  
-  const locales = ['en', 'pl', 'es', 'zh'];
-  const languages = acceptLanguage
-    .split(',')
-    .map((lang: string) => lang.split(';')[0].trim().toLowerCase());
-  
-  for (const lang of languages) {
-    if (locales.includes(lang)) {
-      return lang;
-    }
-    const langPrefix = lang.split('-')[0];
-    if (locales.includes(langPrefix)) {
-      return langPrefix;
-    }
-  }
-  
-  return 'en';
-}
-
 export async function generateMetadata(): Promise<Metadata> {
-  const lang = await getLanguageFromHeaders();
   const baseUrl = 'https://handylay.com';
   
   const titles = {
@@ -62,9 +37,10 @@ export async function generateMetadata(): Promise<Metadata> {
     zh: "地板规划, 表面设计, 室内设计, 公寓设计, 墙面设计, 瓷砖布局"
   };
 
-  const title = titles[lang as keyof typeof titles] || titles.en;
-  const description = descriptions[lang as keyof typeof descriptions] || descriptions.en;
-  const keyword = keywords[lang as keyof typeof keywords] || keywords.en;
+  // Default to English for root layout, individual pages will handle their own language-specific metadata
+  const title = titles.en;
+  const description = descriptions.en;
+  const keyword = keywords.en;
   
   // Create alternate language links
   const languages: Record<string, string> = {
@@ -100,7 +76,7 @@ export async function generateMetadata(): Promise<Metadata> {
     },
     openGraph: {
       type: 'website',
-      locale: lang,
+      locale: 'en',
       url: baseUrl,
       title,
       description,
