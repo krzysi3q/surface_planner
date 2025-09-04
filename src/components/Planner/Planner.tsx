@@ -1583,6 +1583,7 @@ export const Planner: React.FC<PlannerProps> = ({ width, height }) => {
                         pointA={pt}
                         pointB={nxt}
                         scale={0.01}
+                        globalScale={globalScale}
                       />
                       {isNonRightAngle && (
                         <AngleMarker x={pt[0]} y={pt[1]} angle={sweepAngleDeg} rotation={rotationStartDeg} />
@@ -1663,6 +1664,7 @@ export const Planner: React.FC<PlannerProps> = ({ width, height }) => {
                     pointA={currentWallStart}
                     pointB={currentMousePos}
                     scale={0.01}
+                    globalScale={globalScale}
                   />
                 </>
               )}
@@ -1685,6 +1687,7 @@ export const Planner: React.FC<PlannerProps> = ({ width, height }) => {
                     pointA={drawingPoints[drawingPoints.length - 1]}
                     pointB={currentMousePos}
                     scale={0.01}
+                    globalScale={globalScale}
                   />
                 </>
               )}

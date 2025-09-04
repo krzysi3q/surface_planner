@@ -116,7 +116,7 @@ export const Tile: React.FC<TileProps> = ({ points, color, type, id, metadata, i
       {isSelected && points.map((point, i) => {
         const nxt = points[(i + 1) % points.length];
         return (
-          <WallDimension key={i} pointA={point} pointB={nxt} scale={scale} fraction={3} unit="m" />
+          <WallDimension key={i} pointA={point} pointB={nxt} scale={scale} fraction={3} unit="m" globalScale={100} />
         )
       })}
       {isSelected && (
