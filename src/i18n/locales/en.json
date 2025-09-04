@@ -132,6 +132,7 @@
       "saveToBrowser": "Save to browser",
       "downloadAsFile": "Download as file",
       "uploadFile": "Upload file",
+      "print": "Print",
       "makeRightAngle": "Make right angle",
       "deleteCorner": "Delete corner",
       "deleteWall": "Delete wall",

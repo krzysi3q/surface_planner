@@ -1,7 +1,7 @@
 import { Stage, Layer, Line } from "react-konva";
 import React, { useMemo, useRef } from "react";
 import type { Point, Pattern } from "./types";
-import { Download, Hand, PencilRuler, Redo, Ruler, Save, SplinePointer, SquaresSubtract, SquaresUnite, Trash2, Undo, Upload, Waypoints, ZoomIn, ZoomOut } from 'lucide-react'
+import { Download, Hand, PencilRuler, Printer, Redo, Ruler, Save, SplinePointer, SquaresSubtract, SquaresUnite, Trash2, Undo, Upload, Waypoints, ZoomIn, ZoomOut } from 'lucide-react'
 import { RightAngle } from "@/components/Icons/RightAngle";
 import { v4 as uuid} from 'uuid'
 
@@ -248,6 +248,157 @@ export const Planner: React.FC<PlannerProps> = ({ width, height }) => {
   // Touch-specific state for pinch zoom
   const [initialPinchDistance, setInitialPinchDistance] = React.useState<number | null>(null);
   const [initialScale, setInitialScale] = React.useState<number>(100);
+  
+  // Print functionality
+  const printContainerRef = React.useRef<HTMLDivElement | null>(null);
+
+  // Get bounding box of all content for print fitting
+  const getStageContentBoundingBox = React.useCallback(() => {
+    const xs: number[] = [];
+    const ys: number[] = [];
+    
+    // Add surface points
+    surface.points.forEach(poly => poly.forEach(p => { xs.push(p[0]); ys.push(p[1]); }));
+    
+    // Add current drawing surface if exists
+    if (currentSurface) {
+      currentSurface.points.forEach(p => { xs.push(p[0]); ys.push(p[1]); });
+    }
+    
+    // Add drawing points (wall drawing mode)
+    drawingPoints.forEach(p => { xs.push(p[0]); ys.push(p[1]); });
+    
+    // Add current wall being drawn
+    if (isDrawingWall && currentWallStart && currentMousePos) {
+      xs.push(currentWallStart[0], currentMousePos[0]);
+      ys.push(currentWallStart[1], currentMousePos[1]);
+    }
+    
+    if (!xs.length) return null;
+    
+    const minX = Math.min(...xs);
+    const maxX = Math.max(...xs);
+    const minY = Math.min(...ys);
+    const maxY = Math.max(...ys);
+    
+    return { x: minX, y: minY, width: maxX - minX, height: maxY - minY };
+  }, [surface.points, currentSurface, drawingPoints, isDrawingWall, currentWallStart, currentMousePos]);
+
+  const handlePrint = React.useCallback(() => {
+    const bbox = getStageContentBoundingBox();
+    const stage = stageRef.current;
+    
+    if (!stage || !bbox) {
+      // Fallback to regular print if no content
+      window.print();
+      return;
+    }
+
+    // A4 dimensions at 96dpi (portrait mode)
+    const pageWidth = 793; // A4 width in pixels
+    const pageHeight = 1122; // A4 height in pixels
+    const padding = 40; // padding around content
+    
+    // Calculate scale to fit content on page
+    const scaleX = (pageWidth - padding * 2) / bbox.width;
+    const scaleY = (pageHeight - padding * 2) / bbox.height;
+    const scale = Math.min(scaleX, scaleY, 1); // Don't scale up, only down
+    
+    // Create or reuse print container
+    let container = printContainerRef.current;
+    if (!container) {
+      container = document.createElement('div');
+      container.style.position = 'fixed';
+      container.style.top = '-10000px';
+      container.style.left = '-10000px';
+      container.style.zIndex = '-1000';
+      document.body.appendChild(container);
+      printContainerRef.current = container;
+    }
+    
+    // Clear previous content
+    container.innerHTML = '';
+    
+    // Clone the stage for printing
+    const clone = stage.clone();
+    clone.width(pageWidth);
+    clone.height(pageHeight);
+    clone.scale({ x: scale, y: scale });
+    
+    // Center the content on the page
+    const offsetX = (pageWidth - bbox.width * scale) / 2 - bbox.x * scale;
+    const offsetY = (pageHeight - bbox.height * scale) / 2 - bbox.y * scale;
+    clone.position({ x: offsetX, y: offsetY });
+    
+    // Add white background for clean printing
+    const bgLayer = new Konva.Layer();
+    const bg = new Konva.Rect({
+      x: 0,
+      y: 0,
+      width: pageWidth,
+      height: pageHeight,
+      fill: 'white'
+    });
+    bgLayer.add(bg);
+    clone.add(bgLayer);
+    bgLayer.moveToBottom();
+    
+    // Append to container
+    container.appendChild(clone.container());
+    
+    // Add print styles for clean printing
+    const printStyle = document.createElement('style');
+    printStyle.textContent = `
+      @media print {
+        * { box-sizing: border-box; }
+        body { margin: 0; padding: 0; }
+        body > * { display: none !important; }
+        #print-container { 
+          display: block !important;
+          position: absolute !important;
+          top: 0 !important;
+          left: 0 !important;
+          width: 100vw !important;
+          height: 100vh !important;
+          margin: 0 !important;
+          padding: 0 !important;
+        }
+        @page { 
+          margin: 0; 
+          size: A4 portrait;
+        }
+      }
+    `;
+    container.id = 'print-container';
+    document.head.appendChild(printStyle);
+    
+    // Position container for printing
+    container.style.position = 'absolute';
+    container.style.top = '0';
+    container.style.left = '0';
+    container.style.width = '100vw';
+    container.style.height = '100vh';
+    container.style.zIndex = '9999';
+    
+    // Trigger print after DOM update
+    setTimeout(() => {
+      window.print();
+      
+      // Cleanup after print
+      setTimeout(() => {
+        if (container) {
+          container.innerHTML = '';
+          container.style.position = 'fixed';
+          container.style.top = '-10000px';
+          container.style.left = '-10000px';
+          container.style.zIndex = '-1000';
+        }
+        if (document.head.contains(printStyle)) {
+          document.head.removeChild(printStyle);
+        }
+      }, 1000);
+    }, 100);
+  }, [getStageContentBoundingBox]);
   
   // Touch-specific state for pan gestures
   const [initialTouchCenter, setInitialTouchCenter] = React.useState<{ x: number; y: number } | null>(null);
@@ -1145,6 +1296,18 @@ export const Planner: React.FC<PlannerProps> = ({ width, height }) => {
               ref={ref} 
               onClick={() => {document.getElementById('upload-surface')?.click()}} 
               icon={<Upload />} 
+              className={isTouchDevice ? "w-10 h-10" : ""}
+            />
+          } />
+        <Tooltip 
+          text={t('planner.ui.print')}
+          position={"bottom"}
+          disabled={isTouchDevice}
+          component={ref => 
+            <ToolbarButton 
+              ref={ref} 
+              onClick={handlePrint} 
+              icon={<Printer />} 
               className={isTouchDevice ? "w-10 h-10" : ""}
             />
           } />
