@@ -1,11 +1,11 @@
-import React, { useMemo, useState } from "react";
+import React, { useMemo, useState, useEffect } from "react";
 import { useTranslation } from '@/hooks/useTranslation';
 import { useTouchDevice } from '@/hooks/useTouchDevice';
 import { classMerge } from "@/utils/classMerge";
 import { v4 as uuid} from 'uuid'
 
 import { ToolbarButton } from "../../ToolbarButton";
-import { CircleCheck, Copy, Diamond, Eye, EyeOff, Hexagon, RectangleHorizontal, RectangleVertical, RotateCcw, RulerDimensionLine, Square, Trash2, Triangle, X, ZoomIn, ZoomOut, RotateCcw as ResetZoom } from "lucide-react";
+import { CircleCheck, Copy, Diamond, Eye, EyeOff, Hexagon, RectangleHorizontal, RectangleVertical, RotateCcw, RulerDimensionLine, Square, Trash2, Triangle, X, ZoomIn, ZoomOut, RotateCcw as ResetZoom, Palette } from "lucide-react";
 
 import { Pattern, Point, TileType } from "../types"
 import { getBoundingBox, rotateShape, moveTo, getAngles, getCircumscribedCircle } from "../utils"
@@ -17,6 +17,8 @@ import { PatternCanvas } from "./PatternCanvas"
 import Konva from "konva";
 import { ResizePlanner } from "../ResizePlanner";
 import { PatternButton } from "./PatternButton";
+import { TextureSelector } from "./TextureSelector";
+import { TexturePosition } from "./TexturePosition";
 
 import readyPatternsJson from "./ready_patterns.json"
 import { CursorArrows } from "@/components/CursorArrows";
@@ -72,6 +74,7 @@ export const PatternEditor: React.FC<PatternEditorProps> = ({className, value, o
   const [edited, setEdited] = useState<string | null>(null)
   const [zoom, setZoom] = useState<number>(1)
   const [panOffset, setPanOffset] = useState<{ x: number, y: number }>({ x: 0, y: 0 })
+  const [showTextureMenu, setShowTextureMenu] = useState<boolean>(false)
 
   const addTriangle = () => {
     setPattern(prev => {
@@ -776,6 +779,78 @@ export const PatternEditor: React.FC<PatternEditorProps> = ({className, value, o
       }
     }
   }
+
+  const handleTextureSelect = (textureId: string | undefined) => {
+    if (edited) {
+      setPattern(prev => ({
+        ...prev,
+        tiles: prev.tiles.map(t => 
+          t.id === edited ? { ...t, textureId, texture: undefined } : t
+        )
+      }));
+    }
+  };
+
+  const handleTextureOffsetX = (offsetX: number) => {
+    if (edited) {
+      setPattern(prev => ({
+        ...prev,
+        tiles: prev.tiles.map(t => 
+          t.id === edited ? { ...t, textureOffsetX: offsetX } : t
+        )
+      }));
+    }
+  };
+
+  const handleTextureOffsetY = (offsetY: number) => {
+    if (edited) {
+      setPattern(prev => ({
+        ...prev,
+        tiles: prev.tiles.map(t => 
+          t.id === edited ? { ...t, textureOffsetY: offsetY } : t
+        )
+      }));
+    }
+  };
+
+  const handleResetTexturePosition = () => {
+    if (edited) {
+      setPattern(prev => ({
+        ...prev,
+        tiles: prev.tiles.map(t => 
+          t.id === edited ? { ...t, textureOffsetX: 0, textureOffsetY: 0 } : t
+        )
+      }));
+    }
+  };
+
+  const handleTextureScale = (scale: number) => {
+    if (edited) {
+      setPattern(prev => ({
+        ...prev,
+        tiles: prev.tiles.map(t => 
+          t.id === edited ? { ...t, textureScale: scale } : t
+        )
+      }));
+    }
+  };
+
+  const handleResetTextureScale = () => {
+    if (edited) {
+      setPattern(prev => ({
+        ...prev,
+        tiles: prev.tiles.map(t => 
+          t.id === edited ? { ...t, textureScale: 1 } : t
+        )
+      }));
+    }
+  };
+
+  // Close texture menu when edited tile changes
+  useEffect(() => {
+    setShowTextureMenu(false);
+  }, [edited]);
+
   const {moveTileDown, moveTileLeft, moveTileRight, moveTileUp} = useMemo(() => {
     const moveTile = (direction: 'up' | 'down' | 'left' | 'right') => {
       if (edited) {
@@ -1080,6 +1155,49 @@ export const PatternEditor: React.FC<PatternEditorProps> = ({className, value, o
                   "w-10 h-10 md:w-full md:h-9"
                 )} 
               />
+              {!isTouchDevice && (
+                <>
+                  <Tooltip
+                    text={t('planner.patternEditor.textureMenu')}
+                    position="right"
+                    disabled={isTouchDevice}
+                    component={ref => 
+                      <ToolbarButton
+                        ref={ref}
+                        onClick={() => setShowTextureMenu(prev => !prev)}
+                        icon={<Palette />}
+                        className={"w-10 h-10 md:w-auto md:h-auto"}
+                        active={showTextureMenu}
+                      />
+                    }
+                  />
+                  {showTextureMenu && (
+                    <div className="absolute left-full top-0 ml-2 bg-gray-100 shadow-lg rounded-lg p-2 z-20 min-w-64">
+                      <TextureSelector
+                        selectedTextureId={pattern.tiles.find(t => t.id === edited)?.textureId}
+                        onTextureSelect={(textureId) => {
+                          handleTextureSelect(textureId);
+                        }}
+                        currentTileTexture={pattern.tiles.find(t => t.id === edited)?.texture}
+                      />
+                      <TexturePosition
+                        offsetX={pattern.tiles.find(t => t.id === edited)?.textureOffsetX || 0}
+                        offsetY={pattern.tiles.find(t => t.id === edited)?.textureOffsetY || 0}
+                        scale={pattern.tiles.find(t => t.id === edited)?.textureScale || 1}
+                        onOffsetXChange={handleTextureOffsetX}
+                        onOffsetYChange={handleTextureOffsetY}
+                        onScaleChange={handleTextureScale}
+                        onResetPosition={handleResetTexturePosition}
+                        onResetScale={handleResetTextureScale}
+                        disabled={
+                          !pattern.tiles.find(t => t.id === edited)?.textureId && 
+                          !pattern.tiles.find(t => t.id === edited)?.texture
+                        }
+                      />
+                    </div>
+                  )}
+                </>
+              )}
               <Tooltip 
                 text={t('planner.patternEditor.duplicateTile')}
                 position="right"

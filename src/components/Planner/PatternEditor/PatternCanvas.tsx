@@ -4,6 +4,7 @@ import Konva from "konva";
 
 import { Tile, TileEventData } from "./Tile";
 import { Pattern } from "../types";
+import { useTextureLibrary } from "./TextureLibraryContext";
 
 import { createPatternCanvas, drawPattern } from "../utils";
 
@@ -31,6 +32,7 @@ type StageNodeRef = Required<React.ComponentProps<typeof Stage>>['ref'];
 
 const PatternCanvasComponent = ({ width, height, pattern, selectedId, isDragging, preview, isTouchDevice, zoom = 1, panOffset = { x: 0, y: 0 }, ...events }: PatternCanvasProps, ref: StageNodeRef) => {
   const { onStageClick, onStageMouseMove, onStageMouseUp, onStageTouchStart, onTileClick, onTileDown, onTileEnter, onTileLeave } = events;
+  const { getTexture } = useTextureLibrary();
   const [background, setBackground] = React.useState<HTMLImageElement | undefined>(() => {
     return createPatternCanvas();
   });
@@ -41,16 +43,32 @@ const PatternCanvasComponent = ({ width, height, pattern, selectedId, isDragging
       return;
     }
 
-    const patternCanvas = drawPattern(pattern, { alpha: 0.5, backgroundColor: "transparent" });
-    const dataUrl = patternCanvas?.toDataURL("image/webp", 1);
-    if (dataUrl) {
-      const img = new Image();
-      img.onload = () => {
-        setBackground(img);
+    const canvasOrPromise = drawPattern(pattern, { alpha: 0.5, backgroundColor: "transparent" }, getTexture);
+    
+    if (canvasOrPromise instanceof Promise) {
+      // Handle async case (when textures are present)
+      canvasOrPromise.then((canvas) => {
+        const dataUrl = canvas?.toDataURL("image/webp", 1);
+        if (dataUrl) {
+          const img = new Image();
+          img.onload = () => {
+            setBackground(img);
+          }
+          img.src = dataUrl;
+        }
+      });
+    } else {
+      // Handle sync case (when no textures are present)
+      const dataUrl = canvasOrPromise?.toDataURL("image/webp", 1);
+      if (dataUrl) {
+        const img = new Image();
+        img.onload = () => {
+          setBackground(img);
+        }
+        img.src = dataUrl;
       }
-      img.src = dataUrl;
     }
-  }, [pattern, preview]);
+  }, [pattern, preview, getTexture]);
 
 
   const rectWidth = width / zoom;
@@ -103,6 +121,11 @@ const PatternCanvasComponent = ({ width, height, pattern, selectedId, isDragging
                 points={tile.points}
                 metadata={tile.metadata}
                 color={tile.color}
+                texture={tile.texture}
+                textureId={tile.textureId}
+                textureOffsetX={tile.textureOffsetX}
+                textureOffsetY={tile.textureOffsetY}
+                textureScale={tile.textureScale}
                 scale={pattern.scale / 100}
                 isSelected={selectedId === tile.id}
                 isDragging={isDragging}

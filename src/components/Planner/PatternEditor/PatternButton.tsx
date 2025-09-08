@@ -22,13 +22,27 @@ export const PatternButton: React.FC<PatternButtonProps> = ({
   );
   useEffect(() => {
     if (!pattern || pattern.tiles.length === 0) return;
-    const canvas = drawPattern(pattern);
-    canvas?.toBlob((blob) => {
-      if (blob) {
-        const url = URL.createObjectURL(blob);
-        setBackground(url);
-      }
-    });
+    const canvasOrPromise = drawPattern(pattern);
+    
+    if (canvasOrPromise instanceof Promise) {
+      // Handle async case (when there are textured tiles)
+      canvasOrPromise.then(canvas => {
+        canvas?.toBlob((blob) => {
+          if (blob) {
+            const url = URL.createObjectURL(blob);
+            setBackground(url);
+          }
+        });
+      });
+    } else if (canvasOrPromise) {
+      // Handle sync case (when there are only solid tiles)
+      canvasOrPromise.toBlob((blob) => {
+        if (blob) {
+          const url = URL.createObjectURL(blob);
+          setBackground(url);
+        }
+      });
+    }
   }, [pattern]);
 
   return (

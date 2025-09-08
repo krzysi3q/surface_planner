@@ -30,6 +30,7 @@ import { Tooltip } from "../Tooltip";
 import { TouchInstructions } from "../TouchInstructions";
 import { NotificationProvider, NotificationContainer, useNotification } from "../Notification";
 import { PatternDistance } from "./components/PatternDistance";
+import { TextureLibraryProvider } from "./PatternEditor/TextureLibraryContext";
 
 type TemporarySurface = {
   state: "error" | "valid";
@@ -1768,11 +1769,13 @@ export const Planner: React.FC<PlannerProps> = ({ width, height }) => {
 
 export const DynamicSizePlanner = () => {
   return (
-    <NotificationProvider>
-      <ResizePlanner render={(dimensions) => (
-        <Planner width={dimensions.width} height={dimensions.height} />
-      )} />
-      <NotificationContainer />
-    </NotificationProvider>
+    <TextureLibraryProvider>
+      <NotificationProvider>
+        <ResizePlanner render={(dimensions) => (
+          <Planner width={dimensions.width} height={dimensions.height} />
+        )} />
+        <NotificationContainer />
+      </NotificationProvider>
+    </TextureLibraryProvider>
   );
 }

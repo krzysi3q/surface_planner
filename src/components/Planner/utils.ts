@@ -1,6 +1,6 @@
 import Shape, { Point as ShapePoint } from '@doodle3d/clipper-js';
 
-import { Point } from './types';
+import { Point, TileType } from "./types";
 
 const pathPointToShapePoint = (point: Point): ShapePoint => ({
   X: point[0],
@@ -384,10 +384,10 @@ type PatternData = {
   width: number;
   height: number;
   gapColor: string;
-  tiles: { color: string; points: Point[] }[];
+  tiles: TileType[];
 }
 
-export const drawPattern = (pattern: PatternData, options: DrawPatternOptions = {}) => {
+export const drawPattern = (pattern: PatternData, options: DrawPatternOptions = {}, getTexture?: (id: string) => { base64: string } | undefined) => {
   const { alpha = 1, backgroundColor } = options;
   const canvas = document.createElement('canvas');
   const ctx = canvas.getContext('2d');
@@ -400,10 +400,19 @@ export const drawPattern = (pattern: PatternData, options: DrawPatternOptions = 
   ctx.strokeStyle = "#ff0000";
   ctx.strokeRect(0, 0, canvas.width, canvas.height);
   ctx.strokeStyle = pattern.gapColor;
-  pattern.tiles.forEach(tile => {
-    ctx.fillStyle = tile.color;
+  
+  const getEffectiveTexture = (tile: TileType): string | undefined => {
+    // Prioritize texture library reference over direct texture
+    if (tile.textureId && getTexture) {
+      const libraryTexture = getTexture(tile.textureId);
+      return libraryTexture?.base64;
+    }
+    return tile.texture;
+  };
+  
+  const drawTile = (tile: TileType, ctx: CanvasRenderingContext2D) => {
     ctx.beginPath();
-    tile.points.forEach((point, index) => {
+    tile.points.forEach((point: Point, index: number) => {
       if (index === 0) {
         ctx.moveTo(point[0], point[1]);
       } else {
@@ -411,9 +420,126 @@ export const drawPattern = (pattern: PatternData, options: DrawPatternOptions = 
       }
     });
     ctx.closePath();
-    ctx.fill();
-    ctx.stroke();
+    
+    const effectiveTexture = getEffectiveTexture(tile);
+    if (effectiveTexture) {
+      // Handle texture fill
+      const img = new Image();
+      img.onload = () => {
+        const pattern = ctx.createPattern(img, 'repeat');
+        if (pattern) {
+          // Apply texture offset and scale by transforming the pattern
+          const offsetX = tile.textureOffsetX || 0;
+          const offsetY = tile.textureOffsetY || 0;
+          const scale = tile.textureScale || 1;
+          
+          ctx.save();
+          // Apply texture offset relative to tile position
+          const tileX = tile.metadata?.centerX || 0;
+          const tileY = tile.metadata?.centerY || 0;
+          ctx.translate(-offsetX + tileX, -offsetY + tileY);
+          ctx.scale(scale, scale);
+          ctx.fillStyle = pattern;
+          ctx.fill();
+          ctx.restore();
+          ctx.stroke();
+        }
+      };
+      img.src = effectiveTexture;
+    } else {
+      // Handle solid color fill
+      ctx.fillStyle = tile.color;
+      ctx.fill();
+      ctx.stroke();
+    }
+  };
+  
+  // Since texture loading is async, we need to handle this differently
+  const texturedTiles = pattern.tiles.filter(tile => getEffectiveTexture(tile));
+  const solidTiles = pattern.tiles.filter(tile => !getEffectiveTexture(tile));
+  
+  // Draw solid tiles first
+  solidTiles.forEach(tile => {
+    drawTile(tile, ctx);
   });
+  
+  // Handle textured tiles asynchronously
+  if (texturedTiles.length > 0) {
+    return new Promise<HTMLCanvasElement>((resolve) => {
+      let loadedCount = 0;
+      const totalTextures = texturedTiles.length;
+      
+      if (totalTextures === 0) {
+        resolve(canvas);
+        return;
+      }
+      
+      texturedTiles.forEach(tile => {
+        const effectiveTexture = getEffectiveTexture(tile);
+        if (!effectiveTexture) return;
+        
+        const img = new Image();
+        img.onload = () => {
+          ctx.beginPath();
+          tile.points.forEach((point: Point, index: number) => {
+            if (index === 0) {
+              ctx.moveTo(point[0], point[1]);
+            } else {
+              ctx.lineTo(point[0], point[1]);
+            }
+          });
+          ctx.closePath();
+          
+          const pattern = ctx.createPattern(img, 'repeat');
+          if (pattern) {
+            // Apply texture offset and scale by transforming the pattern
+            const offsetX = tile.textureOffsetX || 0;
+            const offsetY = tile.textureOffsetY || 0;
+            const scale = tile.textureScale || 1;
+
+                  // Get tile's current position to make texture stick to tile
+            const tileX = tile.metadata?.centerX || 0;
+            const tileY = tile.metadata?.centerY || 0;
+            
+            ctx.save();
+            ctx.translate(-offsetX + tileX, -offsetY + tileY);
+            ctx.scale(scale, scale);
+            ctx.fillStyle = pattern;
+            ctx.fill();
+            ctx.restore();
+            ctx.stroke();
+          }
+          
+          loadedCount++;
+          if (loadedCount === totalTextures) {
+            resolve(canvas);
+          }
+        };
+        img.onerror = () => {
+          // Fallback to solid color if texture fails to load
+          ctx.fillStyle = tile.color;
+          ctx.beginPath();
+          tile.points.forEach((point: Point, index: number) => {
+            if (index === 0) {
+              ctx.moveTo(point[0], point[1]);
+            } else {
+              ctx.lineTo(point[0], point[1]);
+            }
+          });
+          ctx.closePath();
+          ctx.fill();
+          ctx.stroke();
+          
+          loadedCount++;
+          if (loadedCount === totalTextures) {
+            resolve(canvas);
+          }
+        };
+        img.src = effectiveTexture;
+      });
+    });
+  }
+  
   return canvas;
 }
 

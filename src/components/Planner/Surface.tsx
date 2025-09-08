@@ -3,6 +3,7 @@ import { Pattern, Point } from "./types";
 import { Group, Shape } from "react-konva";
 import { removeCustomCursor, setGrabbingCursor, setGrabCursor, setPointerCursor } from "./domUtils";
 import { createPatternCanvas, drawPattern} from "./utils";
+import { useTextureLibrary } from "./PatternEditor/TextureLibraryContext";
 import Konva from "konva";
 
 interface SurfaceProps { 
@@ -21,6 +22,7 @@ export const Surface: React.FC<SurfaceProps> = ({ points, id, onClick, pattern, 
   const { width, height, gapColor, tiles, scale } = pattern;
   const [background, setBackground] = React.useState<HTMLImageElement | undefined>(undefined);
   const lineRef = React.useRef<Konva.Line>(null);
+  const { getTexture } = useTextureLibrary();
 
   useEffect(() => {
     if (lineRef.current) {
@@ -32,25 +34,49 @@ export const Surface: React.FC<SurfaceProps> = ({ points, id, onClick, pattern, 
 
   useEffect(() => {
     if (tiles.length === 0) return;
-    const canvas = drawPattern({ width, height, gapColor, tiles });
-    canvas?.toBlob((blob) => {
-      if (!blob) return;
-      const url = URL.createObjectURL(blob);
-      const image = new Image();
-      image.onload = () => {
-        setBackground(image);
-        if (pattern.rawImageWidth !== image.width || pattern.rawImageHeight !== image.height) {
-          onChange?.({
-            ...pattern,
-            rawImageWidth: image.width,
-            rawImageHeight: image.height,
-          });
-        }
-      };
-      image.src = url;
-    }, 'image/png', 10);
+    const canvasOrPromise = drawPattern({ width, height, gapColor, tiles }, {}, getTexture);
+    
+    if (canvasOrPromise instanceof Promise) {
+      // Handle async case (when textures are present)
+      canvasOrPromise.then((canvas) => {
+        canvas?.toBlob((blob) => {
+          if (!blob) return;
+          const url = URL.createObjectURL(blob);
+          const image = new Image();
+          image.onload = () => {
+            setBackground(image);
+            if (pattern.rawImageWidth !== image.width || pattern.rawImageHeight !== image.height) {
+              onChange?.({
+                ...pattern,
+                rawImageWidth: image.width,
+                rawImageHeight: image.height,
+              });
+            }
+          };
+          image.src = url;
+        }, 'image/png', 10);
+      });
+    } else {
+      // Handle sync case (when no textures are present)
+      canvasOrPromise?.toBlob((blob) => {
+        if (!blob) return;
+        const url = URL.createObjectURL(blob);
+        const image = new Image();
+        image.onload = () => {
+          setBackground(image);
+          if (pattern.rawImageWidth !== image.width || pattern.rawImageHeight !== image.height) {
+            onChange?.({
+              ...pattern,
+              rawImageWidth: image.width,
+              rawImageHeight: image.height,
+            });
+          }
+        };
+        image.src = url;
+      }, 'image/png', 10);
+    }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [width, height, gapColor, tiles, onChange]);
+  }, [width, height, gapColor, tiles, onChange, getTexture]);
 
 
 

@@ -23,6 +23,11 @@ export interface TileType {
   color: string
   type: 'triangle' | 'rectangle' | 'square' | 'diamond' | 'hexagon'
   metadata: TileMetadata
+  texture?: string; // base64 encoded image (legacy)
+  textureId?: string; // reference to texture library
+  textureOffsetX?: number; // texture horizontal offset in pixels
+  textureOffsetY?: number; // texture vertical offset in pixels
+  textureScale?: number; // texture scale factor for both dimensions (default: 1.0)
 }
 
 

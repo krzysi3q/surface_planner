@@ -1,11 +1,12 @@
-import React, { useMemo, useState } from "react";
-import { Circle, Line, Text } from "react-konva";
+import React, { useMemo, useState, useEffect } from "react";
+import { Circle, Text, Shape } from "react-konva";
 import Konva from "konva";
 
 import { Point, TileType, TileMetadata } from "../types";
 import { removeCustomCursor, setPointerCursor } from "../domUtils";
 import { WallDimension } from "../components/WallDimension";
 import { EdgeResize } from "./EdgeResize";
+import { useTextureLibrary } from "./TextureLibraryContext";
 
 export type TileEventData = {
   id: string;
@@ -22,6 +23,11 @@ interface TileProps {
   metadata?: TileMetadata;
   scale: number;
   color: string;
+  texture?: string;
+  textureId?: string;
+  textureOffsetX?: number;
+  textureOffsetY?: number;
+  textureScale?: number;
   id: string;
   gapSize?: number;
   gapColor?: string;
@@ -32,8 +38,33 @@ interface TileProps {
   onMouseLeave?: (e: Konva.KonvaEventObject<MouseEvent | TouchEvent>, data: TileEventData) => void;
 }
 
-export const Tile: React.FC<TileProps> = ({ points, color, type, id, metadata, isSelected, isDragging, scale, isTouchDevice, onClick, onMouseDown, onMouseEnter, onMouseLeave }) => {
+export const Tile: React.FC<TileProps> = ({ points, color, texture, textureId, textureOffsetX, textureOffsetY, textureScale, type, id, metadata, isSelected, isDragging, scale, isTouchDevice, onClick, onMouseDown, onMouseEnter, onMouseLeave }) => {
   const [state, setState] = useState<'default' | 'hover'>('default');
+  const [fillPatternImage, setFillPatternImage] = useState<HTMLImageElement | null>(null);
+  const { getTexture } = useTextureLibrary();
+
+  // Load texture image for pattern fill
+  useEffect(() => {
+    let textureToUse: string | undefined;
+    
+    // Prioritize texture library reference over direct texture
+    if (textureId) {
+      const libraryTexture = getTexture(textureId);
+      textureToUse = libraryTexture?.base64;
+    } else {
+      textureToUse = texture;
+    }
+    
+    if (textureToUse) {
+      const img = new Image();
+      img.onload = () => {
+        setFillPatternImage(img);
+      };
+      img.src = textureToUse;
+    } else {
+      setFillPatternImage(null);
+    }
+  }, [texture, textureId, getTexture]);
 
   const { handleMouseEnter, handleMouseLeave, handleClick, handleMouseDown, handleTouchStart } = useMemo(() => ({
       handleMouseEnter: (e: Konva.KonvaEventObject<MouseEvent>) => {
@@ -94,23 +125,79 @@ export const Tile: React.FC<TileProps> = ({ points, color, type, id, metadata, i
       },
     }), [onMouseDown, onMouseEnter, onMouseLeave, id, type, isTouchDevice]);
 
+  const sceneFunc = useMemo(() => (context: Konva.Context) => {
+    context.beginPath();
+    points.forEach((point, i) => {
+      if (i === 0) {
+        context.moveTo(point[0], point[1]);
+      } else {
+        context.lineTo(point[0], point[1]);
+      }
+    });
+    context.closePath();
+    
+    // Apply texture if available
+    if (fillPatternImage) {
+      const offsetX = textureOffsetX || 0;
+      const offsetY = textureOffsetY || 0;
+      const scale = textureScale || 1;
+      
+      // Get tile's current position to make texture stick to tile
+      const tileX = metadata?.centerX || 0;
+      const tileY = metadata?.centerY || 0;
+      
+      const pattern = context.createPattern(fillPatternImage, 'repeat');
+      if (pattern) {
+        context.save();
+        // Apply texture offset relative to tile position (texture moves with tile)
+        context.translate(-offsetX + tileX, -offsetY + tileY);
+        context.scale(scale, scale);
+        context.fillStyle = pattern;
+        context.fill();
+        context.restore();
+      }
+    } else {
+      // Use solid color fill
+      context.fillStyle = color;
+      context.fill();
+    }
+    
+    context.strokeStyle = "black";
+    context.lineWidth = 1;
+    context.stroke();
+  }, [points, fillPatternImage, textureOffsetX, textureOffsetY, textureScale, color, metadata?.centerX, metadata?.centerY]);
+
+  const hitFunc = useMemo(() => (context: Konva.Context, shape: Konva.Shape) => {
+    context.beginPath();
+    points.forEach((point, i) => {
+      if (i === 0) {
+        context.moveTo(point[0], point[1]);
+      } else {
+        context.lineTo(point[0], point[1]);
+      }
+    });
+    context.closePath();
+    context.fillStrokeShape(shape);
+  }, [points]);
+
   return (
     <>
-      <Line
-        points={points.flat()}
-        fill={color}
-        closed
-        strokeWidth={1}
+      <Shape
+        sceneFunc={sceneFunc}
+        hitFunc={hitFunc}
+        fill="rgba(0,0,0,0.01)" // Very subtle fill for hit detection
         stroke="black"
+        strokeWidth={1}
         id={id}
         shadowOpacity={0.5}
+        perfectDrawEnabled={false}
+        listening={true}
         onMouseEnter={!isTouchDevice ? handleMouseEnter : undefined}
         onMouseLeave={!isTouchDevice ? handleMouseLeave : undefined}
         onMouseDown={!isTouchDevice ? handleMouseDown : undefined}
         onTouchStart={isTouchDevice ? handleTouchStart : undefined}
         onTap={handleClick}
         onClick={!isTouchDevice ? handleClick : undefined}
-        listening={true}
         name="tile"
       />
       {isSelected && points.map((point, i) => {

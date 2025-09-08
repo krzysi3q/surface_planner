@@ -7,7 +7,8 @@ A multilingual floor and wall planner application with support for English and P
 ### Features
 - 🌐 **Multilingual Support**: English and Polish with URL-based language routing
 - 🎨 **Interactive Planning**: Visual tile and panel layout planning
-- 📱 **Responsive Design**: Optimized for desktop and laptop use
+- �️ **Custom Textures**: Upload your own images as tile textures in the Pattern Editor
+- �📱 **Responsive Design**: Optimized for desktop and laptop use
 - 🚀 **Modern Stack**: Next.js 15, TypeScript, Tailwind CSS, i18next
 
 ### Internationalization
@@ -21,6 +22,16 @@ This project is fully internationalized using i18next. All user-facing strings a
 - **Polish**: Accessible at `/pl/`
 - **Language Detection**: Automatic browser language detection with localStorage persistence
 - **Language Switching**: Available via dropdown and dedicated `/[lang]/language` page
+
+### Custom Texture Upload
+
+The Pattern Editor now supports uploading custom texture images for tiles:
+
+- **Supported Formats**: JPEG, PNG, WebP
+- **File Size Limit**: Up to 10MB
+- **Automatic Processing**: Images are automatically resized to 512x512 pixels and converted to base64 for JSON storage
+- **Usage**: Select a tile in the Pattern Editor and use the "Upload Texture" button in the tile editing panel
+- **Storage**: Textures are stored as base64 strings within the pattern JSON, making them portable and self-contained
 
 ## Getting Started
 
