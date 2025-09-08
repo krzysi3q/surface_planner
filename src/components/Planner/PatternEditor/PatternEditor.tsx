@@ -930,7 +930,7 @@ export const PatternEditor: React.FC<PatternEditorProps> = ({className, value, o
   };
   
 
-  const [preview, setPreview] = useState<boolean>(() => pattern.tiles.length > 0);
+  const [preview, setPreview] = useState<boolean>(false);
 
   return (
     <div className="bg-black/25 absolute top-0 left-0 w-full h-full z-20 p-0 md:p-4">

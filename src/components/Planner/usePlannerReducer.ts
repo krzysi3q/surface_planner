@@ -173,7 +173,7 @@ const getReducer = (surfacePoints: Point[][]): React.Reducer<ReducerState, Actio
 
 
 export const usePlannerReducer = (surfacePoints: Point[][]) => {
-  const [state, dispatch] = useReducer(getReducer(surfacePoints), { mode: 'add-surface', wallIndex: null, editable: true, surfaceIndex: null });
+  const [state, dispatch] = useReducer(getReducer(surfacePoints), { mode: 'default', wallIndex: null, editable: true, surfaceIndex: null });
   return {
     state,
     dispatch,

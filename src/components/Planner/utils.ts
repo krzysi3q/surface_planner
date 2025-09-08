@@ -397,8 +397,6 @@ export const drawPattern = (pattern: PatternData, options: DrawPatternOptions = 
   ctx.globalAlpha = alpha;
   ctx.fillStyle = backgroundColor || pattern.gapColor;
   ctx.fillRect(0, 0, canvas.width, canvas.height);
-  ctx.strokeStyle = "#ff0000";
-  ctx.strokeRect(0, 0, canvas.width, canvas.height);
   ctx.strokeStyle = pattern.gapColor;
   
   const getEffectiveTexture = (tile: TileType): string | undefined => {
