@@ -527,6 +527,47 @@ export const Planner: React.FC<PlannerProps> = ({ width, height }) => {
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [state.mode, drawingPoints.length, isDrawingWall, drawingPoints]);
 
+  // Handle texture loading from localStorage on component mount
+  const texturesProcessedRef = React.useRef(false);
+  
+  React.useEffect(() => {
+    // Only process textures once
+    if (texturesProcessedRef.current) return;
+    
+    const loadTexturesFromBrowser = () => {
+      try {
+        const savedData = loadFromLocalStorage('surface');
+        
+        if (savedData && savedData.textures && Array.isArray(savedData.textures) && savedData.textures.length > 0) {
+          // Add textures to the library and get ID mapping
+          const idMapping = addTexturesFromProject(savedData.textures);
+          
+          // Update texture references in the current surface if needed
+          if (idMapping.size > 0) {
+            setSurface(currentSurface => {
+              const partialSurface = { points: currentSurface.points, pattern: currentSurface.pattern };
+              const updatedPartialSurface = updateTextureReferences(partialSurface, idMapping);
+              
+              return {
+                ...currentSurface,
+                pattern: {
+                  ...currentSurface.pattern,
+                  tiles: updatedPartialSurface.pattern.tiles
+                }
+              };
+            });
+          }
+          
+          texturesProcessedRef.current = true;
+        }
+      } catch (error) {
+        console.error('Error loading textures from browser storage:', error);
+      }
+    };
+
+    loadTexturesFromBrowser();
+  }, [addTexturesFromProject, setSurface]); // Only depend on functions
+
   // Helper function to calculate distance between two points
   const getDistance = (point1: Point, point2: Point): number => {
     const dx = point1[0] - point2[0];
@@ -1300,8 +1341,25 @@ export const Planner: React.FC<PlannerProps> = ({ width, height }) => {
               ref={ref} 
               onClick={() => {
                 try {
-                  saveToLocalStorage('surface', surface);
-                  showSuccess(t('planner.notifications.saveSuccess') || 'Surface saved to browser');
+                  // Get used texture IDs from the surface
+                  const usedTextureIds = getUsedTextureIds(surface);
+                  
+                  // Get actual texture data for used textures
+                  const usedTextures = getUsedTextures(usedTextureIds);
+                  
+                  // Create surface data with embedded textures
+                  const surfaceWithTextures = {
+                    ...surface,
+                    textures: usedTextures
+                  };
+                  
+                  saveToLocalStorage('surface', surfaceWithTextures);
+                  
+                  const textureCount = usedTextures.length;
+                  const successMessage = textureCount > 0 
+                    ? `${t('planner.notifications.saveSuccess') || 'Surface saved to browser'} with ${textureCount} texture${textureCount !== 1 ? 's' : ''}`
+                    : t('planner.notifications.saveSuccess') || 'Surface saved to browser';
+                  showSuccess(successMessage);
                 } catch (error) {
                   console.error('Save failed:', error);
                   showError(t('planner.notifications.saveError') || 'Failed to save surface');
