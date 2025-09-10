@@ -49,5 +49,5 @@ export async function generateStructuredData(lang: string) {
     }
   };
 
-  return JSON.stringify(structuredData);
+  return structuredData;
 }

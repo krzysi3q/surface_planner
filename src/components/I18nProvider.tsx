@@ -41,11 +41,7 @@ export const I18nProvider: React.FC<I18nProviderProps> = ({ children, initialLan
 
   // Don't render content until i18n is initialized to prevent hydration mismatch
   if (!isInitialized) {
-    return (
-      <div className="flex items-center justify-center min-h-screen">
-        <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-orange-600"></div>
-      </div>
-    );
+    return null;
   }
 
   return <>{children}</>;
