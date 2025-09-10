@@ -185,7 +185,9 @@
       "pointAdded": "New corner added to wall",
       "tooCloseToCorner": "Too close to existing corner. Try clicking further from the edges.",
       "pointAlreadyExists": "A corner already exists near this position.",
-      "noSurfaceExists": "Create a surface first before adding corners"
+      "noSurfaceExists": "Create a surface first before adding corners",
+      "texturesImported": "Textures imported successfully",
+      "texturesNotFound": "No textures found in project file"
     }
   },
   "language": {

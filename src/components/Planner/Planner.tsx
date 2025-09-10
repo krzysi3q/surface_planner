@@ -10,7 +10,7 @@ import Konva from "konva";
 import { useHistoryState } from "@/hooks/useHistoryState";
 import { useTranslation } from "@/hooks/useTranslation";
 import { useTouchDevice } from "@/hooks/useTouchDevice";
-import { subtractSurfaces, unionSurfaces, isSurfaceIntersecting, saveToLocalStorage, loadFromLocalStorage, getAngles, getSurfaceArea, doSurfacesIntersect, adjustSurfaceForWallChange, toClockwise, areMultipleSurfacesIntersecting, getClosestPointOnLineSegment, insertPointInWall, getPointDistance } from "./utils";
+import { subtractSurfaces, unionSurfaces, isSurfaceIntersecting, saveToLocalStorage, loadFromLocalStorage, getAngles, getSurfaceArea, doSurfacesIntersect, adjustSurfaceForWallChange, toClockwise, areMultipleSurfacesIntersecting, getClosestPointOnLineSegment, insertPointInWall, getPointDistance, getUsedTextureIds, updateTextureReferences } from "./utils";
 import { removeCustomCursor, setGrabbingCursor } from "./domUtils"
 import EdgeEdit from "./EdgeEdit";
 import { MoveHandler } from "./MoveHandler";
@@ -23,6 +23,7 @@ import { AngleMarker } from "./AngleMarker";
 import { ToolbarButton } from "../ToolbarButton";
 import { classMerge } from "@/utils/classMerge";
 import { Surface } from "./Surface";
+import { useTextureLibrary } from "./PatternEditor/TextureLibraryContext";
 import { PatternEditor } from "./PatternEditor/PatternEditor";
 import { ResizePlanner } from "./ResizePlanner";
 import { CursorArrows } from "../CursorArrows";
@@ -227,6 +228,7 @@ export const Planner: React.FC<PlannerProps> = ({ width, height }) => {
   const { t } = useTranslation();
   const isTouchDevice = useTouchDevice();
   const { showSuccess, showWarning, showError } = useNotification();
+  const { getUsedTextures, addTexturesFromProject } = useTextureLibrary();
   
   const { state: surface, set: setSurface, undo, redo, persist, canUndo, canRedo } = useHistoryState<{id: string, points: Point[][], pattern: Pattern}>(loadFromLocalStorage('surface') || getDefaultSurface(width, height));
   const defferdSurfacePoints = React.useDeferredValue(surface.points);
@@ -1005,14 +1007,31 @@ export const Planner: React.FC<PlannerProps> = ({ width, height }) => {
 
   const downloadSurface = () => {
     try {
-      const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(surface));
+      // Get used texture IDs from the surface
+      const usedTextureIds = getUsedTextureIds(surface);
+      
+      // Get actual texture data for used textures
+      const usedTextures = getUsedTextures(usedTextureIds);
+      
+      // Create surface data with embedded textures
+      const surfaceWithTextures = {
+        ...surface,
+        textures: usedTextures
+      };
+      
+      const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(surfaceWithTextures));
       const downloadAnchorNode = document.createElement("a");
       downloadAnchorNode.setAttribute("href", dataStr);
       downloadAnchorNode.setAttribute("download", `surface-${surface.id}.json`);
       document.body.appendChild(downloadAnchorNode); // required for firefox
       downloadAnchorNode.click();
       downloadAnchorNode.remove();
-      showSuccess(t('planner.notifications.downloadSuccess') || 'Surface downloaded successfully');
+      
+      const textureCount = usedTextures.length;
+      const successMessage = textureCount > 0 
+        ? `${t('planner.notifications.downloadSuccess') || 'Surface downloaded successfully'} with ${textureCount} texture${textureCount !== 1 ? 's' : ''}`
+        : t('planner.notifications.downloadSuccess') || 'Surface downloaded successfully';
+      showSuccess(successMessage);
     } catch (error) {
       console.error('Download failed:', error);
       showError(t('planner.notifications.downloadError') || 'Failed to download surface');
@@ -1025,12 +1044,28 @@ export const Planner: React.FC<PlannerProps> = ({ width, height }) => {
       try {
         const data = JSON.parse(event.target?.result as string);
         if (data && data.points && Array.isArray(data.points) && data.pattern) {
+          let updatedData = data;
+          
+          // Handle textures if they exist in the project file
+          if (data.textures && Array.isArray(data.textures) && data.textures.length > 0) {
+            // Add textures to the library and get ID mapping
+            const idMapping = addTexturesFromProject(data.textures);
+            
+            // Update texture references in the surface
+            updatedData = updateTextureReferences(data, idMapping);
+            
+            const textureCount = data.textures.length;
+            const successMessage = `${t('planner.notifications.uploadSuccess') || 'Surface uploaded successfully'} with ${textureCount} texture${textureCount !== 1 ? 's' : ''}`;
+            showSuccess(successMessage);
+          } else {
+            showSuccess(t('planner.notifications.uploadSuccess') || 'Surface uploaded successfully');
+          }
+          
           setSurface({
-            ...data,
-            points: Array.isArray(data.points[0][0]) ? data.points : [data.points], // ensure points is an array of arrays
-            pattern: data.pattern,
+            ...updatedData,
+            points: Array.isArray(updatedData.points[0][0]) ? updatedData.points : [updatedData.points], // ensure points is an array of arrays
+            pattern: updatedData.pattern,
           });
-          showSuccess(t('planner.notifications.uploadSuccess') || 'Surface uploaded successfully');
         } else {
           console.error("Invalid surface data format");
           showError(t('planner.notifications.invalidFormat') || 'Invalid surface file format');

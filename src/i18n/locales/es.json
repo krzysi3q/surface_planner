@@ -185,7 +185,9 @@
       "pointAdded": "Nueva esquina añadida a la pared",
       "tooCloseToCorner": "Demasiado cerca de una esquina existente. Intenta hacer clic más lejos de los bordes.",
       "pointAlreadyExists": "Ya existe una esquina cerca de esta posición.",
-      "noSurfaceExists": "Crea una superficie primero antes de añadir esquinas"
+      "noSurfaceExists": "Crea una superficie primero antes de añadir esquinas",
+      "texturesImported": "Texturas importadas correctamente",
+      "texturesNotFound": "No se encontraron texturas en el archivo del proyecto"
     }
   },
   "language": {

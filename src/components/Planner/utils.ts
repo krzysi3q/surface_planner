@@ -734,3 +734,41 @@ export const insertPointInWall = (
     ...surfacePoints.slice(surfaceIndex + 1)
   ];
 };
+
+// Utility functions for texture management in projects
+export const getUsedTextureIds = (surface: { points: Point[][], pattern: { tiles: TileType[] } }): string[] => {
+  const textureIds: string[] = [];
+  
+  // Collect texture IDs from all tiles in the pattern
+  surface.pattern.tiles.forEach(tile => {
+    if (tile.textureId) {
+      textureIds.push(tile.textureId);
+    }
+  });
+  
+  return [...new Set(textureIds)]; // Remove duplicates
+};
+
+export const updateTextureReferences = (
+  surface: { points: Point[][], pattern: { tiles: TileType[] } },
+  idMapping: Map<string, string>
+): { points: Point[][], pattern: { tiles: TileType[] } } => {
+  // Update texture IDs in all tiles based on the mapping
+  const updatedTiles = surface.pattern.tiles.map(tile => {
+    if (tile.textureId && idMapping.has(tile.textureId)) {
+      return {
+        ...tile,
+        textureId: idMapping.get(tile.textureId)
+      };
+    }
+    return tile;
+  });
+
+  return {
+    ...surface,
+    pattern: {
+      ...surface.pattern,
+      tiles: updatedTiles
+    }
+  };
+};

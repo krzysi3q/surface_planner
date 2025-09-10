@@ -1,3 +1,5 @@
+import type { TextureItem } from './PatternEditor/TextureLibraryContext';
+
 export type Point = [number, number];
 
 export interface WallStructure {
@@ -9,7 +11,10 @@ export interface SurfaceType {
   id: string;
   points: Point[][];
   pattern: Pattern;
+  textures?: TextureItem[]; // Used textures embedded in the project
 }
+
+export type { TextureItem } from './PatternEditor/TextureLibraryContext';
 
 export interface TileMetadata {
   angle: number;

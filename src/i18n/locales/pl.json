@@ -185,7 +185,9 @@
       "pointAdded": "Dodano nowy róg do ściany",
       "tooCloseToCorner": "Za blisko istniejącego rogu. Spróbuj kliknąć dalej od krawędzi.",
       "pointAlreadyExists": "Róg już istnieje w pobliżu tej pozycji.",
-      "noSurfaceExists": "Najpierw utwórz powierzchnię przed dodawaniem rogów"
+      "noSurfaceExists": "Najpierw utwórz powierzchnię przed dodawaniem rogów",
+      "texturesImported": "Tekstury zostały zaimportowane pomyślnie",
+      "texturesNotFound": "Nie znaleziono tekstur w pliku projektu"
     }
   },
   "language": {

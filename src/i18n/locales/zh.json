@@ -185,7 +185,9 @@
       "pointAdded": "已在墙面添加新角点",
       "tooCloseToCorner": "距离现有角点太近。请尝试点击远离边缘的位置。",
       "pointAlreadyExists": "此位置附近已存在角点。",
-      "noSurfaceExists": "请先创建表面再添加角点"
+      "noSurfaceExists": "请先创建表面再添加角点",
+      "texturesImported": "纹理导入成功",
+      "texturesNotFound": "项目文件中未找到纹理"
     }
   },
   "language": {
