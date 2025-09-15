@@ -396,7 +396,7 @@ export const PatternEditor: React.FC<PatternEditorProps> = ({className, value, o
     setRotateCursor(false);
     
     // Reset pinch gesture tracking
-    if (e.evt instanceof TouchEvent) {
+    if (e.evt && 'touches' in e.evt) {
       lastTouchDistance.current = null;
       lastTouchCenter.current = null;
       isPanning.current = false;
@@ -468,7 +468,7 @@ export const PatternEditor: React.FC<PatternEditorProps> = ({className, value, o
     }
 
     // Handle single-finger touch panning
-    if (e.evt instanceof TouchEvent && e.evt.touches.length === 1 && isPanning.current && lastPanPosition.current && !activeData) {
+    if (e.evt && 'touches' in e.evt && e.evt.touches.length === 1 && isPanning.current && lastPanPosition.current && !activeData) {
       const touch = e.evt.touches[0];
       const stage = e.target.getStage();
       if (stage) {
@@ -509,7 +509,7 @@ export const PatternEditor: React.FC<PatternEditorProps> = ({className, value, o
     }
 
     // Handle pinch zoom for touch devices
-    if (e.evt instanceof TouchEvent && e.evt.touches.length === 2 && lastTouchDistance.current && lastTouchCenter.current) {
+    if (e.evt && 'touches' in e.evt && e.evt.touches.length === 2 && lastTouchDistance.current && lastTouchCenter.current) {
       // Disable panning during pinch
       isPanning.current = false;
       lastPanPosition.current = null;

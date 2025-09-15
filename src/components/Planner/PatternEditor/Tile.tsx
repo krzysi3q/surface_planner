@@ -92,7 +92,8 @@ export const Tile: React.FC<TileProps> = ({ points, color, texture, textureId, t
       handleTouchStart: (e: Konva.KonvaEventObject<TouchEvent>) => {
         // Convert touch to mouse-like behavior for consistency
         e.evt.preventDefault();
-        
+        e.evt.stopPropagation();
+
         // Check if tile is selected
         if (isSelected) {
           // If selected, start drag operation
@@ -103,6 +104,34 @@ export const Tile: React.FC<TileProps> = ({ points, color, texture, textureId, t
         }
       },
       handleClick: (e: Konva.KonvaEventObject<MouseEvent | TouchEvent>) => {
+        // Prevent duplicate events
+        if (e.evt.defaultPrevented) return;
+
+        // Handle mouse clicks for desktop
+        if (e.evt instanceof MouseEvent && !isTouchDevice) {
+          e.evt.preventDefault();
+          e.evt.stopPropagation();
+          onClick?.(e, id);
+          return;
+        }
+
+        // Handle touch events for touch devices
+        if (e.evt && 'touches' in e.evt && isTouchDevice) {
+          e.evt.preventDefault();
+          e.evt.stopPropagation();
+
+          // Check if tile is selected
+          if (isSelected) {
+            // If selected, start drag operation
+            onMouseDown?.(e, { id, action: 'move', type, isSecondary: false });
+          } else {
+            // If not selected, select it first
+            onClick?.(e, id);
+          }
+          return;
+        }
+
+        // Fallback for other event types
         onClick?.(e, id);
       }
     }), [isSelected, isTouchDevice, onMouseEnter, id, type, state, isDragging, onMouseLeave, onMouseDown, onClick]);
@@ -196,8 +225,7 @@ export const Tile: React.FC<TileProps> = ({ points, color, texture, textureId, t
         onMouseLeave={!isTouchDevice ? handleMouseLeave : undefined}
         onMouseDown={!isTouchDevice ? handleMouseDown : undefined}
         onTouchStart={isTouchDevice ? handleTouchStart : undefined}
-        onTap={handleClick}
-        onClick={!isTouchDevice ? handleClick : undefined}
+        onClick={handleClick}
         name="tile"
       />
       {isSelected && points.map((point, i) => {
